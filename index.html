@@ -163,6 +163,34 @@ html,body{margin:0;height:100%;overflow:hidden;background:#7d0f37;font-family:'N
 .thumb{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;background:#000}
 .tile .x{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);border-radius:8px;padding:0 6px;font-size:12px}
 .tile{position:relative}
+#actBtn.idle{background:linear-gradient(#6a3a52,#4a2238);box-shadow:0 5px 0 #2a1020,0 8px 18px rgba(0,0,0,.35);opacity:.8}
+#actBtn.idle .ic{filter:grayscale(.4)}
+#callBtn{position:absolute;right:134px;bottom:calc(env(safe-area-inset-bottom) + 30px);width:46px;height:46px;border-radius:50%;border:2px solid var(--line);background:var(--card);color:#fff;font-size:20px;pointer-events:auto;box-shadow:0 3px 0 rgba(0,0,0,.3)}
+#callBtn:active{transform:scale(.9)}
+#nearHint{position:absolute;right:124px;bottom:calc(env(safe-area-inset-bottom) + 86px);background:rgba(26,8,17,.85);border:2px solid var(--pink);border-radius:12px;padding:4px 10px;font-size:12px;font-weight:900;pointer-events:none;animation:tileIn .3s both;max-width:40vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#questChip{position:absolute;left:8px;top:calc(env(safe-area-inset-top) + 106px);background:var(--card);border:2px solid var(--line);border-radius:12px;padding:4px 9px;font-size:11px;font-weight:900;pointer-events:auto;max-width:60vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#questChip.done{border-color:#ffcf3a;animation:pulse 1.2s infinite}
+#decorBtn{top:calc(env(safe-area-inset-top) + 138px)}
+#keyHint{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 8px);background:rgba(26,8,17,.8);border-radius:12px;padding:6px 12px;font-size:12px;font-weight:700;pointer-events:none;white-space:nowrap}
+body.desktop #joy{display:none}
+body.desktop #tools{bottom:calc(env(safe-area-inset-bottom) + 44px);left:50%}
+body.desktop #actBtn{bottom:calc(env(safe-area-inset-bottom) + 40px)}
+body.desktop #callBtn{bottom:calc(env(safe-area-inset-bottom) + 48px)}
+body.desktop #nearHint{bottom:calc(env(safe-area-inset-bottom) + 104px)}
+body.desktop #editbar{bottom:calc(env(safe-area-inset-bottom) + 120px);max-width:520px;left:50%;right:auto;transform:translateX(-50%);width:90vw}
+.card.remote{opacity:.9}
+.card.remote::after{content:'🎮';position:absolute;top:2px;right:4px;font-size:10px}
+.card{position:relative}
+.pl-screen{height:calc((100vw - 28px) * .5625);max-height:70vh}
+@supports (aspect-ratio:16/9){.pl-screen{height:auto}}
+#player.mini{background:transparent;pointer-events:none;justify-content:flex-start;padding-top:calc(env(safe-area-inset-top) + 112px)}
+#player.mini .pl-screen,#player.mini .pl-bar,#player.mini .pl-note{display:none}
+#player.mini .pl-top{pointer-events:auto;background:rgba(26,8,17,.9);border:2px solid var(--pink);border-radius:14px;padding:6px 10px}
+.lvl{grid-column:1/-1;display:flex;align-items:center;gap:8px;font-weight:900;font-size:13px}
+.lvl .pb{flex:1;height:8px;background:rgba(255,255,255,.12);border-radius:5px;overflow:hidden}
+.lvl .pb i{display:block;height:100%;background:linear-gradient(90deg,#ff8ab5,#d93a73)}
+.topic{grid-column:1/-1;text-align:left;flex-direction:row;justify-content:space-between;padding:10px 12px}
+.topic .s{white-space:nowrap}
 </style>
 </head>
 <body>
@@ -186,7 +214,11 @@ html,body{margin:0;height:100%;overflow:hidden;background:#7d0f37;font-family:'N
     <button class="tool" data-act="bag">🎒<span>Рюкзак</span></button>
   </div>
   <div id="joy"><div id="knob"></div></div>
-  <button id="actBtn"><span class="ic" id="actIcon">📣</span><span id="actLabel">Позвать</span></button>
+  <div id="nearHint" class="hidden"></div>
+  <button id="callBtn" title="Позвать семью (C)">📣</button>
+  <button id="actBtn" class="idle"><span class="ic" id="actIcon">✋</span><span id="actLabel">Подойди ближе</span></button>
+  <div id="questChip" class="hidden"></div>
+  <div id="keyHint" class="hidden">⌨️ <b>WASD</b> — ходить · <b>E</b>/<b>Пробел</b> — действие · <b>C</b> — позвать · <b>F</b> — кормить · <b>Q</b> — эмоции · <b>B</b> — рюкзак · <b>M</b> — карта · <b>1–4</b> — персонажи · <b>Esc</b> — закрыть</div>
   <div id="toast"></div>
   <div id="fade"></div>
   <div id="sheet" class="hidden"><div class="sheet-card">
@@ -195,9 +227,9 @@ html,body{margin:0;height:100%;overflow:hidden;background:#7d0f37;font-family:'N
     <div id="sheetBody"></div>
   </div></div>
   <button id="decorBtn" class="hidden">🛠 Обустроить</button>
-  <div id="editbar" class="hidden"><div id="editHint">Тапни по полу, куда поставить</div><div class="eb"><button data-e="rot">⟳</button><button data-e="del">🗑</button><button data-e="x">✕</button><button data-e="ok" class="main">✓ Готово</button></div></div>
+  <div id="editbar" class="hidden"><div id="editHint"></div><div class="eb" id="ebIdle"><button data-e="add">➕ Добавить</button><button data-e="exit" class="main">✓ Готово</button></div><div class="eb hidden" id="ebItem"><button data-e="rot">⟳</button><button data-e="del">🗑</button><button data-e="x">✕</button><button data-e="ok" class="main">✓ Поставить</button></div></div>
   <div id="mg" class="hidden"><div class="mg-card"><div class="mg-title" id="mgTitle"></div><div id="mgBody"></div></div></div>
-  <div id="player" class="hidden"><div class="pl-top"><b id="plTitle"></b><button id="plClose">✕</button></div><div class="pl-screen" id="plScreen"><canvas id="plCanvas" width="640" height="360"></canvas><div id="plSub"></div></div><div class="pl-bar"><i id="plProg"></i></div><div class="pl-note" id="plNote"></div></div>
+  <div id="player" class="hidden"><div class="pl-top"><b id="plTitle"></b><span><button id="plMini" title="Смотреть на экране">🗗</button> <button id="plClose">✕</button></span></div><div class="pl-screen" id="plScreen"><canvas id="plCanvas" width="640" height="360"></canvas><div id="plSub"></div></div><div class="pl-bar"><i id="plProg"></i></div><div class="pl-note" id="plNote"></div></div>
   <div id="intro" class="hidden"><div class="box">
     <h1>🖤 Goth Family Island</h1>
     Остров, парк и целый город для Полины, Дениса, малышки и котика.<br><br>
@@ -295,6 +327,12 @@ const DISHES = {
   pumpkinpie: { name: 'Тыквенный пирог', emoji: '🥧', r: { pumpkin: 1, flour: 1, egg: 1 }, food: { hunger: 45, fun: 22 }, sell: 110 },
   cake: { name: 'Клубничный торт', emoji: '🍰', r: { flour: 1, egg: 1, strawberry: 1, milk: 1 }, food: { hunger: 25, fun: 25 }, sell: 50, price: 30 },
   salad: { name: 'Салат', emoji: '🥗', r: { tomato: 1, cabbage: 1, carrot: 1 }, food: { hunger: 30, fun: 10, energy: 5 }, sell: 40 },
+  tiramisu: { name: 'Тирамису', emoji: '🍮', r: { coffee: 1, egg: 1, flour: 1, honey: 1 }, food: { hunger: 30, fun: 30 }, sell: 90, secret: 'leo' },
+  rosetea: { name: 'Розовый чай', emoji: '🫖', r: { rose: 1, honey: 1 }, food: { hunger: 5, fun: 25, energy: 20 }, sell: 70, secret: 'mila' },
+  pelmeni: { name: 'Бабушкины пельмени', emoji: '🥟', r: { flour: 1, meat: 1, egg: 1 }, food: { hunger: 55, fun: 16 }, sell: 60, secret: 'vera' },
+  shake: { name: 'Клубничный шейк', emoji: '🍨', r: { milk: 1, strawberry: 1, icecream: 1 }, food: { hunger: 15, fun: 30 }, sell: 50, secret: 'nika' },
+  sandwich: { name: 'Сэндвич', emoji: '🥪', r: { flour: 1, cheese: 1, tomato: 1, chicken: 1 }, food: { hunger: 45, fun: 12 }, sell: 55, secret: 'olya' },
+  bubbletea: { name: 'Бабл-ти', emoji: '🧋', r: { milk: 1, honey: 1, rice: 1 }, food: { hunger: 10, fun: 28 }, sell: 45, secret: 'yuki' },
 };
 const SHOPS = {
   market: { title: '🛒 Fresh Market', sec: [['Овощи и фрукты', ['potato', 'cabbage', 'carrot', 'tomato', 'strawberry', 'rice']], ['Продукты', ['egg', 'flour', 'milk', 'cheese', 'meat', 'chicken', 'honey']]] },
@@ -461,10 +499,15 @@ const me = (() => { const u = tg?.initDataUnsafe?.user; let id = u ? 'tg' + u.id
 const LOCAL_KEYS = ['selected', 'loc', 'settings', 'savedAt', 'mail'];
 function sharedOf(st) { const o = JSON.parse(JSON.stringify(st)); for (const k of LOCAL_KEYS) delete o[k]; for (const id of ORDER) { delete o.chars[id].x; delete o.chars[id].z; } return o; }
 const jeq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-const COUNTER = /^(coins|inv\.\w+|seeds\.\w+|furn\.owned\.\w+)$/, STAT = /^chars\.\w+\.stats\.\w+$/, UNION = /(^unlocked\.\w+|\.got|\.picked)$/;
+const COUNTER = /^(coins|inv\.\w+|seeds\.\w+|furn\.owned\.\w+)$/, STAT = /^chars\.\w+\.stats\.\w+$/, UNION = /(^unlocked\.\w+|\.got|\.picked|\.topics|\.asks)$/;
+// keep fields the other side doesn't know about (e.g. an older app version), instead of deleting them
+function keepMissing(r, l) {
+  if (r && l && typeof r === 'object' && typeof l === 'object' && !Array.isArray(r) && !Array.isArray(l)) { const out = { ...r }; for (const k of Object.keys(l)) out[k] = k in r ? keepMissing(r[k], l[k]) : l[k]; return out; }
+  return r === undefined ? l : r;
+}
 function merge3(b, l, r, path = '') {
   if (jeq(l, r)) return l;
-  if (jeq(l, b)) return r;
+  if (jeq(l, b)) return keepMissing(r, l);
   if (jeq(r, b)) return l;
   if (typeof l === 'number' && typeof r === 'number') {
     if (COUNTER.test(path)) return Math.max(0, r + (l - (typeof b === 'number' ? b : 0)));
@@ -492,7 +535,7 @@ function applyShared(m) {
     Object.assign(sc.stats, c.stats); for (const k of Object.keys(c)) if (k !== 'stats') sc[k] = c[k];
     const a = agents[id]; if (a.outfit !== sc.outfit || hair !== sc.hairColor) { a.outfit = sc.outfit; a.build(); }
   }
-  $('coinVal').textContent = state.coins; refreshHome(); refreshBday(); updateCards(); updateMenuDot();
+  $('coinVal').textContent = state.coins; if (!edit) refreshHome(); refreshBday(); updateCards(); updateMenuDot();
 }
 const famUrl = () => `${SYNC_BASE}/families/${fam.id}.json`;
 async function famGet() {
@@ -529,6 +572,33 @@ async function syncNow() {
   } catch (e) { fam.ok = false; fam.err = String(e.message || e); }
   finally { fam.busy = false; updateCoop(); }
 }
+// live presence: each player streams only their own character
+const live = { busy: false, data: {}, fx: { n: 0, t: '' }, seenFx: {} };
+async function liveTick() {
+  if (!fam.id || !SYNC_BASE || live.busy || !agents || document.hidden) return;
+  live.busy = true;
+  try {
+    const a = me.char && agents[me.char];
+    if (a) await fetch(`${SYNC_BASE}/families/${fam.id}/live/${me.id}.json`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ c: me.char, l: L.id, x: +a.root.position.x.toFixed(2), z: +a.root.position.z.toFixed(2), h: +a.heading.toFixed(2), b: a.busy && a.busy.type !== 'hidden' ? a.busy.type : '', fx: live.fx, t: Date.now() }) });
+    const r = await fetch(`${SYNC_BASE}/families/${fam.id}/live.json`, { cache: 'no-store' });
+    live.data = (await r.json()) || {};
+    applyLive();
+  } catch (e) {}
+  finally { live.busy = false; }
+}
+function applyLive() {
+  const now = Date.now(), active = new Set();
+  for (const [pid, d] of Object.entries(live.data)) {
+    if (pid === me.id || !d || !CHARS[d.c] || d.c === me.char || now - d.t > 15000) continue;
+    const a = agents[d.c]; active.add(d.c);
+    if (!a.remote) { a.target = null; a.onArrive = null; }
+    a.remote = d;
+    if (d.fx && d.fx.n && live.seenFx[pid] !== d.fx.n) { if (live.seenFx[pid] !== undefined && d.l === L.id) floatAgent(a, d.fx.t); live.seenFx[pid] = d.fx.n; }
+  }
+  for (const id of ORDER) if (agents[id].remote && !active.has(id)) { agents[id].remote = null; agents[id].root.visible = true; if (agents[id].busy?.dur === Infinity) agents[id].busy = null; }
+  if (selected.remote) select(agents[me.char] || agents.kid, true);
+}
+setInterval(liveTick, 700);
 function scheduleSync(ms = 1500) { if (!fam.id) return; clearTimeout(fam.timer); fam.timer = setTimeout(syncNow, ms); }
 function partner() { return Object.entries(fam.players || {}).filter(([id]) => id !== me.id).map(([, p]) => p).sort((a, b) => b.seen - a.seen)[0]; }
 function updateCoop() {
@@ -1649,7 +1719,7 @@ function shelf(x, z, w, d, h, col, seed) {
 }
 function table(x, z, col) { at(cyl(0.55, 0.55, 0.07, 16, MC(col)), x, 0.85, z); at(cyl(0.07, 0.07, 0.85, 8, MC('#141114')), x, 0.42, z); for (const a of [0, Math.PI]) at(rb(0.45, 0.5, 0.45, MC('#ff8ab5'), 0.06), x + Math.cos(a) * 0.85, 0.25, z + Math.sin(a) * 0.85); addCircle(x, z, 1.05); }
 function mannequin(x, z, top, bottom) { at(rb(0.5, 0.08, 0.5, MC('#cfcad3'), 0.02), x, 0.04, z); at(cyl(0.04, 0.04, 0.6, 6, MC('#cfcad3')), x, 0.35, z); at(rb(0.62, 0.5, 0.34, MC(bottom), 0.1), x, 0.85, z); at(rb(0.7, 0.8, 0.4, MC(top), 0.14), x, 1.5, z); at(sph(0.2, MC('#f4eef0'), 12), x, 2.1, z); addCircle(x, z, 0.4); }
-let cinemaSeats = [];
+let cinemaSeats = [], cinemaScr = null, filmTex = null, filmMat = null;
 function buildInteriors() {
   interior('cafe', { name: 'Кафе Le Chat Noir', icon: '☕', w: 13, d: 9, wall: '#2a1418', floor: 'tile', f1: '#141114', f2: '#f4e6e9', sign: '☕ Le Chat Noir', signOpts: { bg: '#141114', fg: '#ff8ab5', font: 'italic 900 36px Georgia, serif' }, build: (w, d) => {
     const cg = new THREE.Group(); B.group.add(cg); const pg = B.group; B.group = cg; counter(0, -2.4, 6, 0.9, '#141114', '#ff8ab5'); B.group = pg;
@@ -1719,10 +1789,11 @@ function buildInteriors() {
   interior('cinema', { name: 'Кинотеатр Lumière', icon: '🎬', w: 14, d: 12, wall: '#1a0f1e', trim: '#c2183f', floor: 'carpet', f1: '#5a1028', f2: '#7a1a3a', build: (w, d) => {
     const scr = new THREE.Mesh(new THREE.PlaneGeometry(9, 3.8), glowMat('#2a2040', '#6a5aff', 0.5, 0.5)); scr.position.set(0, 2.5, -5.82); B.group.add(scr);
     at(rb(9.6, 0.3, 0.2, MC('#141114'), 0.03), 0, 4.5, -5.8); for (const x of [-5.4, 5.4]) at(rb(1.2, 4.4, 0.3, MC('#c2183f'), 0.06), x, 2.2, -5.7);
-    const seats = new THREE.Group(); B.group.add(seats); cinemaSeats = [];
+    const seats = new THREE.Group(); B.group.add(seats); cinemaSeats = []; seats.add(scr); cinemaScr = scr; scr.userData.baseMat = scr.material;
     for (const z of [-1.8, 0.4, 2.6]) for (const x of [-4, -2, 0, 2, 4]) { at(rb(1.2, 0.5, 0.9, MC('#c2183f'), 0.1), x, 0.25, z, seats); at(rb(1.2, 0.9, 0.25, MC('#a3122f'), 0.1), x, 0.7, z + 0.45, seats); cinemaSeats.push({ x, z }); }
     addRect(-4.7, 4.7, -2.3, -1.3); addRect(-4.7, 4.7, -0.1, 0.9); addRect(-4.7, 4.7, 2.1, 3.1);
     addInter({ id: 'cinemaScreen', group: seats, pos: { x: 0, z: 0 }, approach: { x: 0, z: 4.0 }, info: () => ({ icon: '🎬', text: 'Смотреть фильм' }), act: () => openScreen('cinema') });
+    addLabel('🎬 Тапни по экрану — выбрать фильм', 0, 4.9, -5.6);
     const bar = new THREE.Group(); bar.position.set(5.6, 0, 4.2); at(rb(1.6, 1.05, 1.1, MC('#f5c542'), 0.05), 0, 0.52, 0, bar); at(rb(0.7, 0.8, 0.6, M('#fff3e0', { transparent: true, opacity: 0.6 }), 0.04), 0, 1.5, 0, bar); for (let k = 0; k < 6; k++) at(sph(0.08, MC('#fff3e0'), 6), -0.15 + (k % 3) * 0.15, 1.3 + Math.floor(k / 3) * 0.15, 0, bar);
     B.group.add(bar); addRect(4.8, 6.4, 3.65, 4.75);
     addInter({ id: 'popcornBar', group: bar, pos: { x: 5.6, z: 4.2 }, approach: { x: 4.2, z: 4.2 }, info: () => ({ icon: '🍿', text: 'Кинобар' }), act: () => openShopList('cinema') });
@@ -1855,15 +1926,18 @@ function playFilm(f, onEnd) {
   initAudio(); if (musicGain) musicGain.gain.value = 0;
   $('plTitle').textContent = `${f.emoji} ${f.title}`; $('plNote').textContent = ''; $('plSub').textContent = '';
   $('plScreen').querySelector('iframe')?.remove(); const cv = $('plCanvas'); cv.style.display = 'block';
-  $('player').classList.remove('hidden');
+  $('player').classList.remove('hidden', 'mini'); $('plMini').style.display = L.id === 'cinema' ? '' : 'none';
   const x = cv.getContext('2d'), t0 = performance.now();
   film = { f, onEnd, step: 0, next: AC ? AC.currentTime + 0.1 : 0 };
   const tick = () => {
     if (!film || film.f !== f) return;
     const t = (performance.now() - t0) / 1000;
     if (t >= f.dur) return endFilm(true);
+    const sub = f.subs.filter(s => t >= s[0]).pop();
     x.save(); f.draw(x, 640, 360, t); x.restore();
-    const sub = f.subs.filter(s => t >= s[0]).pop(); $('plSub').textContent = sub ? fill(sub[1]) : '';
+    if (cinemaScr && L.id === 'cinema') { if (!filmTex) { filmTex = new THREE.CanvasTexture(cv); filmTex.colorSpace = THREE.SRGBColorSpace; filmMat = new THREE.MeshBasicMaterial({ map: filmTex }); } cinemaScr.material = filmMat; filmTex.needsUpdate = true; }
+    if ($('player').classList.contains('mini')) $('plTitle').textContent = `${f.emoji} ${sub ? fill(sub[1]) : f.title}`;
+    $('plSub').textContent = sub ? fill(sub[1]) : '';
     $('plProg').style.width = (t / f.dur * 100) + '%';
     filmTone(f, t); requestAnimationFrame(tick);
   };
@@ -1875,12 +1949,13 @@ function playYouTube(v, onEnd) {
   $('plNote').textContent = 'Видео с YouTube — без входа в аккаунт';
   $('plCanvas').style.display = 'none'; $('plScreen').querySelector('iframe')?.remove();
   const fr = document.createElement('iframe'); fr.src = `https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&playsinline=1&rel=0&modestbranding=1`; fr.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen'; fr.allowFullscreen = true;
-  $('plScreen').prepend(fr); $('player').classList.remove('hidden');
+  $('plScreen').prepend(fr); $('player').classList.remove('hidden', 'mini'); $('plMini').style.display = 'none';
   film = { f: v, onEnd, yt: true };
 }
 function endFilm(done) {
   const f = film; film = null;
-  $('player').classList.add('hidden'); $('plScreen').querySelector('iframe')?.remove();
+  $('player').classList.add('hidden'); $('player').classList.remove('mini'); $('plScreen').querySelector('iframe')?.remove();
+  if (cinemaScr) cinemaScr.material = cinemaScr.userData.baseMat;
   applyVolumes(); f?.onEnd?.(done || !!f?.yt);
 }
 const ytId = s => { const m = String(s).match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([\w-]{11})/) || String(s).trim().match(/^([\w-]{11})$/); return m ? m[1] : null; };
@@ -1999,7 +2074,12 @@ function spawnNPCs() {
     new NPC({ id: 'ped' + loc + k, loc, x, z, rot: rnd(0, 6), def: pl.def, look: pl.look }, true);
   }
 }
-const friend = id => state.npc[id] || (state.npc[id] = { f: 0, talk: -1, gift: -1, got: [] });
+const friend = id => { const f = state.npc[id] || (state.npc[id] = { f: 0, talk: -1, gift: -1, got: [] }); f.topics ||= []; f.asks ||= []; return f; };
+const FR_TITLES = [[0, 'Знакомые'], [2, 'Приятели'], [4, 'Друзья'], [7, 'Лучшие друзья'], [10, 'Родная душа']];
+const frTitle = f => FR_TITLES.filter(t => f >= t[0]).pop()[1];
+function disc(shop) { let off = 0; for (const [id, st] of Object.entries(NPC_STORY)) if (st.perk?.shop === shop && (state.npc[id]?.f || 0) >= 6) off = Math.max(off, st.perk.off); return off; }
+const price = (base, shop) => Math.max(1, Math.round(base * (1 - disc(shop))));
+const priceTag = (base, shop) => disc(shop) ? `🪙${price(base, shop)} 💗−${Math.round(disc(shop) * 100)}%` : `🪙${base}`;
 const hearts = f => '💗'.repeat(Math.min(5, Math.floor(f / 2))) + '🤍'.repeat(5 - Math.min(5, Math.floor(f / 2)));
 function commandNpc(n) {
   const a = selected; if (busyCheck(a)) return;
@@ -2018,7 +2098,8 @@ function grantReward(r, from) {
   toast(`🎁 ${from}: ${fill(r.msg || 'Подарок!')}`); hapticOk(); sfx('harvest');
 }
 function addFriend(n, v) {
-  const fr = friend(n.d.id); fr.f = Math.min(10, fr.f + v);
+  const fr = friend(n.d.id), before = fr.f; fr.f = Math.min(10, fr.f + v);
+  if (fr.f > before) { const t0 = frTitle(before), t1 = frTitle(fr.f); if (t0 !== t1) setTimeout(() => toast(`💗 ${n.d.name}: теперь вы «${t1}»!`), 300); if (before < 4 && fr.f >= 4 && NPC_SECRET[n.d.id]) setTimeout(() => toast(`📖 ${n.d.name} рассказывает секретный рецепт: ${DISHES[NPC_SECRET[n.d.id]].name}!`), 1800); if (before < 6 && fr.f >= 6 && NPC_STORY[n.d.id]?.perk) setTimeout(() => toast(`🏷 Скидка ${Math.round(NPC_STORY[n.d.id].perk.off * 100)}% от ${n.d.name}!`), 2400); }
   for (const th of [3, 6, 10]) if (fr.f >= th && !fr.got.includes(th) && n.d.rewards?.[th]) { fr.got.push(th); setTimeout(() => grantReward(n.d.rewards[th], n.d.name), 600); }
 }
 function openNpc(n) {
@@ -2027,8 +2108,9 @@ function openNpc(n) {
   const line = fill(night && Math.random() < 0.4 ? pick(['Уже так поздно… Звёзды сегодня красивые ✨', 'Не спится? Мне тоже 🌙']) : pick(n.d.lines));
   n.speak(line); sfx('pop');
   const p = n.root.position, q = selected.root.position; n.want = Math.atan2(q.x - p.x, q.z - p.z);
-  openSheet({ title: `${n.d.name}  ${hearts(fr.f)}`, render: body => {
+  openSheet({ title: () => `${n.d.name}  ${hearts(friend(n.d.id).f)}`, render: body => {
     const sp = document.createElement('div'); sp.className = 'speech'; sp.textContent = line; body.appendChild(sp);
+    const lv = document.createElement('div'); lv.className = 'lvl'; lv.innerHTML = `<span>${frTitle(fr.f)}</span><div class="pb"><i style="width:${fr.f * 10}%"></i></div><span>${fr.f}/10</span>`; body.appendChild(lv);
     tile(body, { e: '💬', n: 'Поболтать', s: fr.talk === today ? 'уже болтали сегодня' : '+1 💗', click: () => {
       n.speak(fill(pick(n.d.lines))); quest('talk');
       if (fr.talk !== today) { fr.talk = today; addFriend(n, 1); addStat(selected, 'fun', 8); floatAgent(selected, '💬'); }
@@ -2046,7 +2128,72 @@ function openNpc(n) {
     if (role === 'icecream') tile(body, { e: '🍦', n: 'Купить мороженое', s: '🪙15', dis: state.coins < 15, click: () => { if (state.coins < 15) return; bumpCoins(-15); state.inv.icecream = (state.inv.icecream || 0) + 1; sfx('coin'); toast('🍦 в рюкзаке'); save(); } });
     if (role === 'musician') tile(body, { e: '🎵', n: 'Послушать', s: 'вся семья +💗', click: () => { closeSheet(); sfx('melody'); for (const a of famHere()) { addStat(a, 'fun', 6); floatAgent(a, '🎵'); } n.speak('🎶🎶🎶'); } });
     if (role === 'granny') tile(body, { e: '🍪', n: 'Угоститься', s: fr.treat === today ? 'завтра ещё' : 'раз в день', dis: fr.treat === today, click: () => { fr.treat = today; state.inv.cookie = (state.inv.cookie || 0) + 1; n.speak('Кушай, деточка 🍪'); toast('🍪 в рюкзаке'); save(); renderSheet(); } });
+    npcExtras(body, n);
   } });
+}
+
+const NPC_STORY = {
+  leo: { perk: { shop: 'cafe', off: 0.2 },
+    topics: [[0, 'Как ты стал бариста?', 'С детства обожал запах кофе. Однажды просто открыл эту кофейню — и ни дня не пожалел ☕'], [2, 'Есть секрет вкусного кофе?', 'Свежая обжарка и хорошее настроение. Без второго не работает 😉'], [4, 'Что ты делаешь после работы?', 'Рисую котиков на пенке. Когда-нибудь устрою выставку латте-арта!'], [7, 'Ты счастлив?', 'Когда заходят {mom} и {dad} — очень 💕']],
+    asks: [[1, 'milk', 3, 'Ой, закончилось молоко! Принесёшь 3 🍼?', { coins: 60 }], [4, 'strawberry', 4, 'Хочу клубничный латте. Нужно 4 🍓', { coins: 90, items: { cake: 1 } }], [7, 'cake', 2, 'У кафе скоро день рождения! Принесёшь 2 🍰?', { coins: 160 }]] },
+  mila: { perk: { shop: 'fleur', off: 0.2 },
+    topics: [[0, 'Почему ты любишь цветы?', 'Они честные: если о них заботиться — они расцветают. Как люди 🌷'], [2, 'Какой цветок самый особенный?', 'Роза. Она колючая снаружи, но очень нежная внутри 🌹'], [4, 'Ты кого-нибудь любишь?', 'Тсс… Это секрет. Но он покупает у меня тюльпаны каждую пятницу 🙈'], [7, 'О чём мечтаешь?', 'Открыть оранжерею на острове. Может, у вас?']],
+    asks: [[1, 'tulip', 2, 'Мне нужны 2 тюльпана 🌷 для свадебного букета', { coins: 70, seeds: { rose: 2 } }], [4, 'rose', 2, 'Принесёшь 2 розы 🌹? Это для витрины', { coins: 110 }], [7, 'sunflower', 3, 'Хочу солнечный букет — нужно 3 🌻', { coins: 150, items: { bouquet: 2 } }]] },
+  mark: { perk: { shop: 'mall', off: 0.15 },
+    topics: [[0, 'Тебе нравится работать в ТЦ?', 'Конечно! Каждый день новые лица и новые коллекции 🛍'], [2, 'Что сейчас в моде?', 'Готика снова в тренде. Вам, кажется, это известно 🖤'], [4, 'Откуда ты?', 'Вырос в этом городе. Помню, когда тут была только пекарня'], [7, 'Есть мечта?', 'Свой бренд одежды. Первую коллекцию назову «Goth Family» 😉']],
+    asks: [[1, 'coffee', 2, 'Не успел позавтракать… Принесёшь 2 ☕?', { coins: 50 }], [4, 'pizza', 1, 'Обед для всей команды: нужна 🍕', { coins: 90 }], [7, 'sushi', 2, 'Корпоратив! Принесёшь 2 🍣?', { coins: 160, furn: 'candles' }]] },
+  vera: {
+    topics: [[0, 'Как ваше здоровье?', 'Ох, деточка, пока голуби со мной — всё хорошо 🕊'], [2, 'Расскажите о молодости', 'Мы с дедушкой познакомились прямо у этого фонтана… Он уронил мороженое мне на туфлю 😄'], [4, 'Какой ваш любимый рецепт?', 'Пельмени! Записывай: мука, яйцо и мясо. И капельку любви 🥟'], [7, 'Что самое главное в жизни?', 'Беречь друг друга. Как {mom} и {dad} 💕']],
+    asks: [[1, 'cherry', 4, 'Сварю варенье! Нужно 4 вишенки 🍒', { coins: 60, items: { cookie: 2 } }], [4, 'carrot', 5, 'Голуби полюбили морковку. Принесёшь 5 🥕?', { coins: 90 }], [7, 'pumpkinpie', 1, 'Как в молодости — тыквенный пирог 🥧. Порадуешь?', { coins: 180 }]] },
+  timur: {
+    topics: [[0, 'Давно играешь?', 'С 12 лет. Гитара — мой лучший друг 🎸'], [2, 'Какая музыка тебе нравится?', 'Всё мрачное и красивое. Как этот город ночью 🌙'], [4, 'Научишь чему-нибудь?', 'Держи — простая серенада. Сыграй её для любимого человека 🎶 (новая эмоция!)'], [7, 'Ты выступаешь где-то ещё?', 'Мечтаю о большой сцене. Но тут, в парке, — самые тёплые зрители']],
+    asks: [[1, 'soda', 2, 'Горло пересохло… Принесёшь 2 🥤?', { coins: 50 }], [4, 'burger', 1, 'Три часа играю без перерыва. Нужен 🍔!', { coins: 90 }], [7, 'bouquet', 1, 'Хочу подарить букет одной девушке. Поможешь? 💐', { coins: 160 }]] },
+  nika: { perk: { shop: 'truck', off: 0.2 },
+    topics: [[0, 'Какое мороженое лучшее?', 'Клубничное! Без вариантов 🍓🍦'], [2, 'Тебе не холодно весь день?', 'Ха-ха, я тепло одеваюсь. А мороженое — для души'], [4, 'Есть секретный рецепт?', 'Клубничный шейк: молоко, клубника и мороженое. Только никому! 🍨'], [7, 'Мы ведь друзья?', 'Конечно! Для вас всегда — самая большая порция 💕']],
+    asks: [[1, 'strawberry', 3, 'Кончилась клубника! Принесёшь 3 🍓?', { coins: 60, items: { icecream: 2 } }], [4, 'milk', 3, 'Нужно 3 🍼 для новых рожков', { coins: 80 }], [7, 'chocolate', 3, 'Делаю шоколадную серию — нужно 3 🍫', { coins: 150 }]] },
+  olya: { perk: { shop: 'market', off: 0.15 },
+    topics: [[0, 'Тяжело работать на кассе?', 'Нет, люблю болтать с покупателями 😊'], [2, 'Что вкуснее всего купить?', 'Свежую капусту и мясо — и сварить борщ 🍲'], [4, 'Что ты ешь на обед?', 'Мой фирменный сэндвич: хлеб, сыр, помидор и курица 🥪 Попробуй!'], [7, 'Твоя мечта?', 'Открыть ферму. Может, начну с вашего огорода? 😄']],
+    asks: [[1, 'carrot', 3, 'Поставщик подвёл! Принесёшь 3 🥕?', { coins: 50 }], [4, 'tomato', 4, 'Нужно 4 🍅 для витрины', { coins: 90, items: { cheese: 2 } }], [7, 'borscht', 1, 'Хочу попробовать твой борщ 🍲', { coins: 170 }]] },
+  yuki: { perk: { shop: 'sakura', off: 0.15 },
+    topics: [[0, 'Ты из Японии?', 'Мама из Киото. А я выросла здесь, но люблю обе культуры 🏮'], [2, 'Что значит «сакура»?', 'Цветущая вишня. Символ того, что красота — мимолётна 🌸'], [4, 'Любимый напиток?', 'Бабл-ти! Молоко, мёд и рисовые шарики 🧋 Делаю дома'], [7, 'Как сказать «люблю»?', '«Дайсуки» 💕 Скажи это сегодня кому-нибудь']],
+    asks: [[1, 'rice', 4, 'Нужно 4 🍚 для онигири', { coins: 50, items: { nori: 2 } }], [4, 'fish', 2, 'Свежая рыбка для суши! Принесёшь 2 🐟?', { coins: 90 }], [7, 'sushi', 2, 'Хочу оценить твои суши 🍣🍣', { coins: 160 }]] },
+};
+const NPC_SECRET = Object.fromEntries(Object.entries(DISHES).filter(([, d]) => d.secret).map(([k, d]) => [d.secret, k]));
+function npcExtras(body, n) {
+  const st = NPC_STORY[n.d.id]; if (!st) return;
+  const fr = friend(n.d.id);
+  sec(body, '💬 Темы для разговора');
+  st.topics.forEach(([lv, q, a], i) => {
+    const open = fr.f >= lv, heard = fr.topics.includes(i);
+    const b = tile(body, { e: '', n: open ? q : `🔒 Откроется на ${lv}💗`, s: !open ? '' : heard ? 'слышали' : '✨ +1💗', lock: !open, click: () => {
+      if (!open) return toast(`Подружитесь сильнее: нужно ${lv}💗`);
+      const sp = body.querySelector('.speech'); if (sp) sp.textContent = fill(a); n.speak(fill(a), 4);
+      if (!heard) { fr.topics.push(i); addFriend(n, 1); sfx('heart'); }
+      save(); setTimeout(renderSheet, 50);
+    } });
+    b.classList.add('topic'); b.querySelector('.e').remove();
+  });
+  const ask = st.asks.findIndex((q, i) => !fr.asks.includes(i));
+  sec(body, '📋 Просьба');
+  if (ask < 0) info(body, '✅ Все просьбы выполнены. Спасибо! 💕');
+  else {
+    const [lv, item, cnt, text, reward] = st.asks[ask], have = state.inv[item] || 0, it = ITEMS[item];
+    if (fr.f < lv) info(body, `🔒 Новая просьба появится на ${lv}💗`);
+    else {
+      info(body, `${fill(text)}<br><span style="opacity:.75">У тебя: ${it.emoji} ${have}/${cnt} · награда: ${reward.coins ? '🪙' + reward.coins : ''} ${Object.keys(reward.items || {}).map(k => ITEMS[k].emoji).join('')}${reward.furn ? FURN[reward.furn].emoji : ''}</span>`);
+      const b = document.createElement('button'); b.className = 'btn main'; b.style.gridColumn = '1/-1'; b.textContent = have >= cnt ? `Отдать ${it.emoji}×${cnt}` : `Нужно ещё ${cnt - have} ${it.emoji}`; b.disabled = have < cnt;
+      b.onclick = () => { state.inv[item] -= cnt; fr.asks.push(ask); grantReward({ ...reward, msg: 'Спасибо огромное! Ты лучше всех 💕' }, n.d.name); addFriend(n, 2); quest('talk'); n.speak('Спасибо!! 💕'); save(); renderSheet(); };
+      body.appendChild(b);
+    }
+  }
+  sec(body, '🎁 Бонусы дружбы');
+  const perks = [];
+  if (NPC_SECRET[n.d.id]) { const d = DISHES[NPC_SECRET[n.d.id]]; perks.push([4, `${d.emoji} Секретный рецепт: ${d.name}`]); }
+  if (n.d.id === 'timur') perks.push([4, '🎸 Эмоция «Серенада»']);
+  if (st.perk) perks.push([6, `🏷 Скидка ${Math.round(st.perk.off * 100)}% в магазине`]);
+  for (const [th, r] of Object.entries(n.d.rewards || {})) perks.push([+th, `🎁 Подарок: ${fill(r.msg).slice(0, 34)}…`]);
+  perks.sort((a, b) => a[0] - b[0]);
+  info(body, perks.map(([lv, t]) => `${fr.f >= lv ? '✅' : '🔒 ' + lv + '💗'} ${t}`).join('<br>'));
 }
 
 // ================= bugs =================
@@ -2220,6 +2367,21 @@ class Agent {
     if (this.look) { const p = this.root.position; this.want = Math.atan2(this.look.x - p.x, this.look.z - p.z); this.look = null; }
     cb?.(this);
   }
+  updateRemote(dt, time) {
+    const r = this.remote, here = r.l === L.id;
+    this.root.visible = here;
+    let moving = false;
+    if (here) {
+      const p = this.root.position, dx = r.x - p.x, dz = r.z - p.z, d = Math.hypot(dx, dz);
+      if (d > 6) p.set(r.x, 0, r.z);
+      else if (d > 0.05) { const st = Math.min(d, Math.max(this.def.speed, d * 4) * dt); p.x += dx / d * st; p.z += dz / d * st; moving = d > 0.12; if (moving) this.want = Math.atan2(dx, dz); }
+      if (!moving) this.want = r.h;
+      if (r.b) { if (this.busy?.type !== r.b) this.busy = { type: r.b, t: 0, dur: Infinity, y: r.b === 'sleep' ? (this.def.kind === 'cat' ? 0 : 0.8) : 0.45 }; else this.busy.t += dt; }
+      else if (this.busy) { this.busy.t += dt; if (this.busy.dur === Infinity || this.busy.t >= this.busy.dur) this.busy = null; }
+    }
+    turn(this, dt); animWalker(this, dt, moving, 1, time);
+    this.setMood(this.busy?.type === 'sleep' ? 'sleep' : Math.min(this.stats.hunger, this.stats.fun, this.stats.energy) < 22 ? 'sad' : 'happy');
+  }
   think(dt) {
     this.idleT -= dt; if (this.idleT > 0) return;
     this.idleT = 3 + Math.random() * 5;
@@ -2235,11 +2397,12 @@ class Agent {
     if (!blocked(x, z, this.radius + 0.2, L)) this.goTo({ x, z });
   }
   update(dt, time) {
+    if (this.remote) return this.updateRemote(dt, time);
     const b = this.busy;
     if (b) { b.t += dt; b.tick?.(dt); if (b.t >= b.dur) { this.busy = null; b.done?.(); } }
     let move = null;
     if (!this.busy) {
-      if (joyVec && selected === this) { move = joyVec; this.target = null; this.onArrive = null; }
+      if (joyVec && selected === this && !mgOn && !edit) { move = joyVec; this.target = null; this.onArrive = null; }
       else if (this.target) {
         const p = this.root.position, dx = this.target.x - p.x, dz = this.target.z - p.z, d = Math.hypot(dx, dz);
         if (d < 0.14) this.arrive(); else move = { x: dx / d, z: dz / d, mag: Math.min(1, 0.35 + d) };
@@ -2335,6 +2498,10 @@ function emote(kind) {
     addStat(a, 'fun', 22); addStat(partner, 'fun', 22);
     const mid = a.root.position.clone().lerp(partner.root.position, 0.5); mid.y = 3.6; floatAt(mid, '💋'); setTimeout(() => floatAt(mid, '💞'), 400);
     sfx('heart'); hapticOk(); quest('kiss');
+  } else if (kind === 'serenade') {
+    a.busy = { type: 'guitar', t: 0, dur: 4 }; sfx('melody'); setTimeout(() => sfx('piano'), 1600);
+    for (const o of famHere()) if (o !== a && o.root.position.distanceTo(a.root.position) < 6) { addStat(o, 'fun', o.def.adult ? 25 : 10); setTimeout(() => floatAgent(o, '😍'), 900); }
+    for (let k = 0; k < 4; k++) setTimeout(() => floatAgent(a, pick(['🎶', '🎵', '💕'])), k * 700); quest('dance');
   } else if (kind === 'group') {
     const group = famHere().filter(o => !o.busy && o.root.position.distanceTo(a.root.position) < 4);
     if (group.length < 2) return toast('Позови семью поближе 🫂');
@@ -2463,40 +2630,46 @@ function doFurn(fn, a, sp) {
 }
 // ---- decorating ----
 let edit = null;
+let decorMode = false;
 function openDecor() {
   if (L.id !== 'home') return toast('Обустраивать можно дома 🏠');
-  openSheet({ title: '🛠 Обустройство', tabs: [{ key: 'add', label: '➕ Поставить' }, { key: 'room', label: '🛋 В комнате' }], render: (body, tab) => {
-    if (tab === 'add') {
-      const avail = Object.keys(state.furn.owned).filter(id => FURN[id] && state.furn.owned[id] - state.furn.placed.filter(x => x.id === id).length > 0);
-      if (!avail.length) return empty(body, 'Вся мебель уже стоит 🛋<br>Новую можно купить в ТЦ «Galleria Rosa» в городе');
-      for (const id of avail) tile(body, { e: FURN[id].emoji, n: FURN[id].name, s: `свободно ${state.furn.owned[id] - state.furn.placed.filter(x => x.id === id).length}`, click: () => { const p = selected.root.position; startEdit({ id, x: Math.round(p.x * 2) / 2, z: Math.round((p.z - 1.5) * 2) / 2, r: 0, idx: null }); } });
-    } else {
-      if (!state.furn.placed.length) return empty(body, 'В комнате пусто');
-      state.furn.placed.forEach((pl, i) => tile(body, { e: FURN[pl.id]?.emoji || '❓', n: FURN[pl.id]?.name || pl.id, s: 'переставить', click: () => startEdit({ ...pl, idx: i }) }));
-    }
+  decorMode = true; showEditBar();
+  toast('🛠 Тапни по мебели, чтобы передвинуть, или «➕ Добавить»');
+}
+function openDecorAdd() {
+  openSheet({ title: '🛠 Что поставить?', render: body => {
+    const avail = Object.keys(state.furn.owned).filter(id => FURN[id] && state.furn.owned[id] - state.furn.placed.filter(x => x.id === id).length > 0);
+    if (!avail.length) return empty(body, 'Вся мебель уже стоит 🛋<br>Новую можно купить в ТЦ «Galleria Rosa» в городе');
+    for (const id of avail) tile(body, { e: FURN[id].emoji, n: FURN[id].name, s: `свободно ${state.furn.owned[id] - state.furn.placed.filter(x => x.id === id).length}`, click: () => { const p = selected.root.position; startEdit({ id, x: Math.round(p.x * 2) / 2, z: Math.round((p.z - 1.5) * 2) / 2, r: 0, idx: null }); } });
   } });
 }
+function showEditBar() {
+  const on = decorMode || !!edit;
+  $('editbar').classList.toggle('hidden', !on); $('decorBtn').classList.toggle('hidden', on || L.id !== 'home');
+  $('ebIdle').classList.toggle('hidden', !!edit); $('ebItem').classList.toggle('hidden', !edit);
+  if (edit) { $('editHint').textContent = `${FURN[edit.id].emoji} ${FURN[edit.id].name}: веди пальцем или тапни по полу`; $('editbar').querySelector('[data-e="del"]').style.display = edit.idx === null ? 'none' : ''; }
+  else $('editHint').textContent = '🛠 Режим обустройства: тапни по мебели, чтобы передвинуть';
+}
+function exitDecor() { if (edit) endEdit(false); decorMode = false; showEditBar(); }
 function startEdit(e) {
   closeSheet(); if (edit) endEdit(false);
   edit = e; edit.ghost = new THREE.Group(); edit.ghost.add(furnModel(e.id));
   const rg = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.05, 32), new THREE.MeshBasicMaterial({ color: '#ff6fa3', transparent: true, opacity: 0.8 })); rg.rotation.x = -Math.PI / 2; rg.position.y = 0.03; edit.ghost.add(rg);
   LOCS.home.group.add(edit.ghost);
   if (e.idx !== null) { const o = furnObjs.find(x => x.i === e.idx); if (o) o.g.visible = false; }
-  $('editbar').classList.remove('hidden'); $('editbar').querySelector('[data-e="del"]').style.display = e.idx === null ? 'none' : '';
-  $('editHint').textContent = `${FURN[e.id].emoji} ${FURN[e.id].name}: тапни по полу, куда поставить`;
+  decorMode = true; showEditBar();
   haptic();
 }
 function endEdit(apply, remove) {
   if (!edit) return;
   const e = edit; edit = null;
   LOCS.home.group.remove(e.ghost); disposeTree(e.ghost);
-  $('editbar').classList.add('hidden');
   if (apply) {
     const pl = { id: e.id, x: e.x, z: e.z, r: e.r };
     if (e.idx === null) state.furn.placed.push(pl); else if (remove) state.furn.placed.splice(e.idx, 1); else state.furn.placed[e.idx] = pl;
     sfx(remove ? 'pop' : 'plant'); hapticOk(); save();
   }
-  refreshHome(true);
+  refreshHome(true); showEditBar();
 }
 function callFamily() {
   const p = selected.root.position; let k = 0;
@@ -2512,9 +2685,10 @@ function commandInter(it) {
   else a.goTo(it.approach, ag => it.act(ag), it.pos);
   showMarker(it.approach);
 }
-function select(a) {
+function select(a, quiet) {
   if (selected === a) return;
-  selected = a; state.selected = a.id; a.target = null; updateCards(); haptic(); floatAgent(a, '✨');
+  if (a.remote) { toast(`${nm(a.id)} сейчас управляет ${fem(a, 'сама', 'сам')} 💕 Тапни по ${fem(a, 'ней', 'нему')}, чтобы обнять`); return; }
+  selected = a; state.selected = a.id; a.target = null; updateCards(); if (quiet) return; haptic(); floatAgent(a, '✨');
   const cc = cards[a.id].c; cc.classList.remove('bump'); void cc.offsetWidth; cc.classList.add('bump');
 }
 
@@ -2528,7 +2702,7 @@ function travel(to, at, silent) {
     const spot = at || L.arrive;
     let k = 0;
     for (const id of [selected.id, ...ORDER.filter(i => i !== selected.id)]) {
-      const a = agents[id]; a.target = null; a.onArrive = null;
+      const a = agents[id]; if (a.remote) continue; a.target = null; a.onArrive = null;
       if (a.busy?.type !== 'sleep' && a.busy?.type !== 'hidden') a.busy = null;
       a.root.visible = true;
       const ang = k * 2.2, r = k ? 1.3 : 0; k++;
@@ -2536,8 +2710,8 @@ function travel(to, at, silent) {
     }
     camT.set(selected.root.position.x, 0, selected.root.position.z);
     scene.fog.near = L.fog[0]; scene.fog.far = L.fog[1];
-    if (L.id === 'home') refreshHome(); else if (edit) endEdit(false);
-    $('decorBtn').classList.toggle('hidden', L.id !== 'home');
+    if (L.id === 'home') refreshHome(); else { if (edit) endEdit(false); decorMode = false; }
+    showEditBar();
     for (const p of plots) p.lbl.classList.toggle('hidden', L.id !== 'island');
     spawnBugs(L); applyTime(); applyWeatherVis();
     if (to === 'city' || to === 'park') quest(to);
@@ -2632,6 +2806,12 @@ function quest(t, n = 1) {
   for (const q of state.daily.quests) if (q.t === t && q.p < q.n) { q.p = Math.min(q.n, q.p + n); if (q.p >= q.n) { setTimeout(() => toast(`✅ Задание: ${fill(q.txt)} — забери награду в ☰`), 900); sfx('harvest'); } }
   updateMenuDot();
 }
+function updateQuestChip() {
+  const el = $('questChip'), q = state.daily.quests.find(q => !q.claimed && q.p >= q.n) || state.daily.quests.find(q => q.p < q.n);
+  el.classList.toggle('hidden', !q || !!sheetOpts); if (!q) return;
+  const done = q.p >= q.n; el.classList.toggle('done', done);
+  el.textContent = done ? `✅ ${fill(q.txt)} — забрать 🪙${q.reward}` : `📜 ${fill(q.txt)} ${q.p}/${q.n}`;
+}
 function updateMenuDot() { $('menuBtn').classList.toggle('dot', state.daily.quests.some(q => q.p >= q.n && !q.claimed) || state.mail.day !== dayNum() || !!(giftBox?.visible)); }
 const LETTERS = [
   { from: 'Денис 🖤', text: '{mom}, доброе утро!\nНе забудь сегодня улыбнуться — тебе очень идёт 🖤' },
@@ -2694,7 +2874,7 @@ let toastT = 0;
 function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 2600); }
 const floats = [];
 function floatAt(pos, text) { const el = document.createElement('div'); el.className = 'float'; const sp = document.createElement('span'); sp.textContent = text; el.appendChild(sp); labelsEl.appendChild(el); floats.push({ el, pos: pos.clone(), t: 0 }); }
-function floatAgent(a, text) { const p = a.root.position.clone(); p.y += a.model.height + 0.3; floatAt(p, text); }
+function floatAgent(a, text) { const p = a.root.position.clone(); p.y += a.model.height + 0.3; floatAt(p, text); if (fam.id && a.id === me.char) live.fx = { n: live.fx.n + 1, t: text }; }
 const _v = new THREE.Vector3(), _w = new THREE.Vector3();
 function place(el, p) {
   _v.copy(p).project(camera);
@@ -2724,7 +2904,8 @@ function buildCards() {
 function updateCards() {
   for (const id of ORDER) {
     const k = cards[id], st = agents[id].stats;
-    k.c.classList.toggle('sel', selected.id === id); k.c.classList.toggle('low', Math.min(st.hunger, st.fun, st.energy) < 25); k.n.textContent = nm(id);
+    const rm = agents[id].remote; k.c.classList.toggle('sel', selected.id === id); k.c.classList.toggle('remote', !!rm); k.c.classList.toggle('low', Math.min(st.hunger, st.fun, st.energy) < 25);
+    k.n.textContent = rm && rm.l !== L.id ? `${nm(id)} · ${LOCS[rm.l]?.icon || '📍'}` : nm(id);
     k.i[0].style.width = st.hunger + '%'; k.i[1].style.width = st.fun + '%'; k.i[2].style.width = st.energy + '%';
   }
 }
@@ -2829,6 +3010,8 @@ function openEmotes() {
     tile(body, { e: '🤸', n: 'Прыжок', click: () => emote('jump') });
     tile(body, { e: '🫂', n: 'Обнимашки', s: 'вся семья', click: () => emote('group') });
     if (selected.def.adult) tile(body, { e: '😘', n: 'Поцелуй', s: selected.id === 'mom' ? 'с Денисом' : 'с Полиной', click: () => emote('kiss') });
+    const ser = (state.npc.timur?.f || 0) >= 4; tile(body, { e: ser ? '🎸' : '🔒', n: 'Серенада', s: ser ? 'для любимого человека' : 'научит Тимур (4💗)', lock: !ser, click: () => ser ? emote('serenade') : toast('Подружись с Тимуром в парке 🎸') });
+    tile(body, { e: '📣', n: 'Позвать семью', click: () => { closeSheet(); callFamily(); } });
   } });
 }
 function openBag() {
@@ -2868,24 +3051,25 @@ function openShop() {
 }
 function openCafe() {
   openSheet({ title: '☕ Le Chat Noir', render: body => {
-    for (const k of ['coffee', 'croissant', 'cookie', 'blini', 'cake', 'pizza', 'chocolate']) { const f = ITEMS[k]; tile(body, { e: f.emoji, n: f.name, s: `🪙${f.price} · ${foodSub(f.food)}`, dis: state.coins < f.price, click: buyBtn(f.price, () => state.inv[k] = (state.inv[k] || 0) + 1, `${f.emoji} в рюкзаке`) }); }
+    for (const k of ['coffee', 'croissant', 'cookie', 'blini', 'cake', 'pizza', 'chocolate']) { const f = ITEMS[k], pr = price(f.price, 'cafe'); tile(body, { e: f.emoji, n: f.name, s: `${priceTag(f.price, 'cafe')} · ${foodSub(f.food)}`, dis: state.coins < pr, click: buyBtn(pr, () => state.inv[k] = (state.inv[k] || 0) + 1, `${f.emoji} в рюкзаке`) }); }
     tile(body, { e: '🧑‍🍳', n: 'Подработка', s: '+30🪙 · взрослым', click: () => { closeSheet(); doWork(selected, 'cafe'); } });
   } });
 }
-const priceOf = id => ITEMS[id].price || BUY_PRICE[id];
+const priceOf = (id, shop) => price(ITEMS[id].price || BUY_PRICE[id], shop);
 function openShopList(kind) {
   const sh = SHOPS[kind];
   openSheet({ title: sh.title, render: body => {
     for (const [title, ids] of sh.sec) {
       sec(body, title);
-      for (const id of ids) { const f = ITEMS[id], pr = priceOf(id); tile(body, { e: f.emoji, n: f.name, s: `🪙${pr}${f.food ? ' · ' + foodSub(f.food) : ''} · есть ${state.inv[id] || 0}`, dis: state.coins < pr, click: buyBtn(pr, () => { state.inv[id] = (state.inv[id] || 0) + 1; }, `${f.emoji} в рюкзаке`) }); }
+      for (const id of ids) { const f = ITEMS[id], pr = priceOf(id, kind); tile(body, { e: f.emoji, n: f.name, s: `${priceTag(ITEMS[id].price || BUY_PRICE[id], kind)}${f.food ? ' · ' + foodSub(f.food) : ''} · есть ${state.inv[id] || 0}`, dis: state.coins < pr, click: buyBtn(pr, () => { state.inv[id] = (state.inv[id] || 0) + 1; }, `${f.emoji} в рюкзаке`) }); }
     }
     if (kind !== 'truck') empty(body, 'Готовить можно дома на кухне 🍳');
   } });
 }
 // ---- cooking ----
 let cooking = false;
-const canCook = id => Object.entries(DISHES[id].r).every(([k, n]) => (state.inv[k] || 0) >= n);
+const recipeKnown = id => !DISHES[id].secret || friend(DISHES[id].secret).f >= 4;
+const canCook = id => recipeKnown(id) && Object.entries(DISHES[id].r).every(([k, n]) => (state.inv[k] || 0) >= n);
 function openCook(a) {
   openSheet({ title: '🍳 Кухня', tabs: [{ key: 'can', label: '✅ Можно приготовить' }, { key: 'all', label: '📖 Все рецепты' }], render: (body, tab) => {
     const ids = Object.keys(DISHES).filter(id => tab === 'all' || canCook(id));
@@ -2893,6 +3077,7 @@ function openCook(a) {
     ids.sort((x, y) => canCook(y) - canCook(x));
     for (const id of ids) {
       const d = DISHES[id], ok = canCook(id);
+      if (!recipeKnown(id)) { const who = NPC_DEFS.find(n => n.id === d.secret); tile(body, { e: '🔒', n: d.name, s: `секрет: ${who.name} · 4💗`, lock: true, click: () => toast(`Этот рецепт расскажет ${who.name}, когда вы подружитесь (4💗)`) }); continue; }
       const ing = Object.entries(d.r).map(([k, n]) => `${ITEMS[k].emoji}${n > 1 ? '×' + n : ''}${(state.inv[k] || 0) >= n ? '' : '❌'}`).join(' ');
       tile(body, { e: d.emoji, n: d.name + (state.cooked[id] ? ' ✓' : ''), s: ing, lock: !ok, click: () => {
         if (!ok) return toast('Не хватает: ' + Object.entries(d.r).filter(([k, n]) => (state.inv[k] || 0) < n).map(([k]) => ITEMS[k].name).join(', '));
@@ -2916,9 +3101,9 @@ function cook(a, id) {
 function openFlowers() {
   openSheet({ title: '🌷 Fleur', render: body => {
     sec(body, 'Семена цветов');
-    for (const k of FLOWERS) { const c = CROPS[k]; tile(body, { e: c.emoji, n: c.name, s: `🪙${c.seed} · ${c.grow} с · есть ${state.seeds[k] || 0}`, dis: state.coins < c.seed, click: buyBtn(c.seed, () => state.seeds[k] = (state.seeds[k] || 0) + 1) }); }
+    for (const k of FLOWERS) { const c = CROPS[k], pr = price(c.seed, 'fleur'); tile(body, { e: c.emoji, n: c.name, s: `${priceTag(c.seed, 'fleur')} · ${c.grow} с · есть ${state.seeds[k] || 0}`, dis: state.coins < pr, click: buyBtn(pr, () => state.seeds[k] = (state.seeds[k] || 0) + 1) }); }
     sec(body, 'Подарки');
-    tile(body, { e: '💐', n: 'Букет', s: '🪙40', dis: state.coins < 40, click: buyBtn(40, () => state.inv.bouquet = (state.inv.bouquet || 0) + 1, '💐 в рюкзаке') });
+    tile(body, { e: '💐', n: 'Букет', s: priceTag(40, 'fleur'), dis: state.coins < price(40, 'fleur'), click: buyBtn(price(40, 'fleur'), () => state.inv.bouquet = (state.inv.bouquet || 0) + 1, '💐 в рюкзаке') });
   } });
 }
 function openMall(tab) {
@@ -2926,10 +3111,10 @@ function openMall(tab) {
     if (tab === 'bout') for (const id of ORDER) {
       sec(body, nm(id));
       for (const [k, o] of Object.entries(CHARS[id].outfits)) { if (!o.price) continue; const have = state.unlocked[id].includes(k);
-        tile(body, { e: o.emoji, n: o.label, s: have ? '✔ куплено' : `🪙${o.price}`, dis: have || state.coins < o.price, click: buyBtn(o.price, () => { state.unlocked[id].push(k); const ag = agents[id]; ag.outfit = k; ag.build(); sparkle(ag); quest('mall'); }, `Новый наряд для ${nm(id)}! ✨`) }); }
+        tile(body, { e: o.emoji, n: o.label, s: have ? '✔ куплено' : priceTag(o.price, 'mall'), dis: have || state.coins < price(o.price, 'mall'), click: buyBtn(price(o.price, 'mall'), () => { state.unlocked[id].push(k); const ag = agents[id]; ag.outfit = k; ag.build(); sparkle(ag); quest('mall'); }, `Новый наряд для ${nm(id)}! ✨`) }); }
     }
-    if (tab === 'furn') for (const k of FURN_SHOP) { const f = FURN[k]; tile(body, { e: f.emoji, n: f.name, s: `🪙${f.price} · есть ${state.furn.owned[k] || 0}`, dis: state.coins < f.price, click: buyBtn(f.price, () => { state.furn.owned[k] = (state.furn.owned[k] || 0) + 1; quest('mall'); }, `${f.emoji} доставим домой — поставь через 🛠 Обустроить`) }); }
-    if (tab === 'gift') for (const k of ['bouquet', 'teddyToy', 'chocolate', 'ring']) { const f = ITEMS[k]; tile(body, { e: f.emoji, n: f.name, s: `🪙${f.price}`, dis: state.coins < f.price, click: buyBtn(f.price, () => { state.inv[k] = (state.inv[k] || 0) + 1; quest('mall'); }, `${f.emoji} в рюкзаке — подари через 🍽 → Подарки`) }); }
+    if (tab === 'furn') for (const k of FURN_SHOP) { const f = FURN[k]; tile(body, { e: f.emoji, n: f.name, s: `${priceTag(f.price, 'mall')} · есть ${state.furn.owned[k] || 0}`, dis: state.coins < price(f.price, 'mall'), click: buyBtn(price(f.price, 'mall'), () => { state.furn.owned[k] = (state.furn.owned[k] || 0) + 1; quest('mall'); }, `${f.emoji} доставим домой — поставь через 🛠 Обустроить`) }); }
+    if (tab === 'gift') for (const k of ['bouquet', 'teddyToy', 'chocolate', 'ring']) { const f = ITEMS[k]; tile(body, { e: f.emoji, n: f.name, s: priceTag(f.price, 'mall'), dis: state.coins < price(f.price, 'mall'), click: buyBtn(price(f.price, 'mall'), () => { state.inv[k] = (state.inv[k] || 0) + 1; quest('mall'); }, `${f.emoji} в рюкзаке — подари через 🍽 → Подарки`) }); }
   } });
 }
 function openSeedPicker(i, a) {
@@ -3011,15 +3196,18 @@ try { tg?.BackButton?.onClick(closeSheet); } catch (e) {}
 $('menuBtn').onclick = () => { initAudio(); haptic(); openMenu(); };
 $('mapBtn').onclick = () => { initAudio(); haptic(); openTravel(); };
 $('decorBtn').onclick = () => { initAudio(); haptic(); openDecor(); };
-document.querySelectorAll('#editbar button').forEach(b => b.onclick = () => { const e = b.dataset.e; if (!edit) return; if (e === 'rot') { edit.r += Math.PI / 2; haptic(); } else if (e === 'ok') endEdit(true); else if (e === 'del') endEdit(true, true); else endEdit(false); });
+document.querySelectorAll('#editbar button').forEach(b => b.onclick = () => { const e = b.dataset.e; if (e === 'add') return openDecorAdd(); if (e === 'exit') return exitDecor(); if (!edit) return; if (e === 'rot') { edit.r += Math.PI / 2; haptic(); } else if (e === 'ok') endEdit(true); else if (e === 'del') endEdit(true, true); else endEdit(false); });
 $('plClose').onclick = () => endFilm(false);
+$('plMini').onclick = () => { $('player').classList.toggle('mini'); $('plMini').textContent = $('player').classList.contains('mini') ? '⤢' : '🗗'; };
 document.querySelectorAll('.tool').forEach(b => b.onclick = () => {
   b.classList.remove('tap'); void b.offsetWidth; b.classList.add('tap');
   initAudio(); haptic(); const act = b.dataset.act;
   if (act === 'feed') openFeed(); else if (act === 'dress') openDress(); else if (act === 'pet') pet(selected); else if (act === 'emote') openEmotes(); else if (act === 'bag') openBag();
 });
 let nearInter = null;
-$('actBtn').onclick = () => { initAudio(); haptic('medium'); if (nearInter) commandInter(nearInter); else callFamily(); };
+$('actBtn').onclick = () => { initAudio(); if (nearInter) { haptic('medium'); commandInter(nearInter); } else { toast('Подойди к чему-нибудь или тапни по предмету 👆'); } };
+$('callBtn').onclick = () => { initAudio(); callFamily(); };
+$('questChip').onclick = () => { initAudio(); openMenu(); };
 
 // joystick
 let joyVec = null, joyId = null, joyC = null;
@@ -3036,6 +3224,37 @@ function joyMove(e) {
   joyVec = m < 0.15 ? null : { x: dx / (Math.hypot(dx, dy) || 1), z: dy / (Math.hypot(dx, dy) || 1), mag: m };
 }
 
+// keyboard
+const keys = new Set(); let keyJoy = false;
+const KEYMAP = { w: 'up', 'ц': 'up', arrowup: 'up', s: 'down', 'ы': 'down', arrowdown: 'down', a: 'left', 'ф': 'left', arrowleft: 'left', d: 'right', 'в': 'right', arrowright: 'right' };
+function updKeys() {
+  let x = 0, z = 0; for (const k of keys) { const v = KEYMAP[k]; if (v === 'up') z -= 1; if (v === 'down') z += 1; if (v === 'left') x -= 1; if (v === 'right') x += 1; }
+  const m = Math.hypot(x, z);
+  if (m) { joyVec = { x: x / m, z: z / m, mag: 1 }; keyJoy = true; } else if (keyJoy) { joyVec = null; keyJoy = false; }
+}
+addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.ctrlKey || e.metaKey) return;
+  const k = e.key.toLowerCase(); initAudio();
+  if (KEYMAP[k]) { keys.add(k); updKeys(); e.preventDefault(); return; }
+  if (e.repeat) return;
+  const playing = !$('player').classList.contains('hidden') && !$('player').classList.contains('mini');
+  if (k === 'escape') { if (playing) endFilm(false); else if (sheetOpts) closeSheet(); else if (edit) endEdit(false); else if (decorMode) exitDecor(); return; }
+  if (playing || mgOn) return;
+  if (k === 'e' || k === 'у' || k === ' ' || k === 'enter') { e.preventDefault(); if (sheetOpts) return; $('actBtn').click(); }
+  else if (k === 'c' || k === 'с') callFamily();
+  else if (k === 'f' || k === 'а') openFeed();
+  else if (k === 'q' || k === 'й') openEmotes();
+  else if (k === 'b' || k === 'и' || k === 'i' || k === 'ш') openBag();
+  else if (k === 'm' || k === 'ь') openTravel();
+  else if (k === 'x' || k === 'ч') openDress();
+  else if (k === 'r' || k === 'к') pet(selected);
+  else if (k === 'tab') { e.preventDefault(); openMenu(); }
+  else if ('1234'.includes(k)) select(agents[ORDER[+k - 1]]);
+});
+addEventListener('keyup', e => { keys.delete(e.key.toLowerCase()); updKeys(); });
+addEventListener('blur', () => { keys.clear(); updKeys(); });
+if (matchMedia('(hover: hover) and (pointer: fine)').matches) { document.body.classList.add('desktop'); $('keyHint').classList.remove('hidden'); setTimeout(() => $('keyHint').classList.add('hidden'), 12000); }
+
 // taps + pinch
 let zoom = 1;
 const cvs = renderer.domElement, ptrs = new Map(); let tapStart = null, pinchD = 0;
@@ -3048,6 +3267,7 @@ cvs.addEventListener('pointerdown', e => {
 cvs.addEventListener('pointermove', e => {
   if (!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (ptrs.size === 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y); if (pinchD > 0) zoom = clamp(zoom * pinchD / d, 0.55, 1.7); pinchD = d; }
+  else if (edit && ptrs.size === 1) { ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera); moveGhostTo(); }
 });
 const ptrEnd = e => {
   if (!ptrs.has(e.pointerId)) return; ptrs.delete(e.pointerId);
@@ -3057,16 +3277,18 @@ const ptrEnd = e => {
 cvs.addEventListener('pointerup', ptrEnd); cvs.addEventListener('pointercancel', e => { ptrs.delete(e.pointerId); tapStart = null; });
 cvs.addEventListener('wheel', e => { zoom = clamp(zoom * (1 + e.deltaY * 0.001), 0.55, 1.7); }, { passive: true });
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function moveGhostTo() { const g = ray.intersectObjects(L.pickables.filter(o => o.userData.ground), false)[0]; if (!g || !edit) return; const q = { x: Math.round(g.point.x * 2) / 2, z: Math.round(g.point.z * 2) / 2 }; bound(q, L); edit.x = q.x; edit.z = q.z; }
 function handleTap(cx, cy) {
   if (fading) return;
   ndc.set(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera);
-  if (edit) { const g = ray.intersectObjects(L.pickables.filter(o => o.userData.ground), false)[0]; if (g) { const q = { x: Math.round(g.point.x * 2) / 2, z: Math.round(g.point.z * 2) / 2 }; bound(q, L); edit.x = q.x; edit.z = q.z; haptic(); } return; }
+  if (edit) { moveGhostTo(); haptic(); return; }
+  if (decorMode && L.id === 'home') { const h = ray.intersectObjects(furnObjs.map(o => o.g), true)[0]; if (h) { const o = furnObjs.find(f => { let q = h.object; while (q) { if (q === f.g) return true; q = q.parent; } return false; }); if (o) startEdit({ ...state.furn.placed[o.i], idx: o.i }); } return; }
   const list = [...L.pickables, ...Object.values(agents).filter(a => a.root.visible).map(a => a.root), ...L.npcs.map(n => n.root), ...L.bugs.map(b => b.g)];
   const hits = ray.intersectObjects(list, true);
   for (const h of hits) {
     const u = h.object.userData;
     if (h.object.visible === false && !u.interId && !u.bug) continue;
-    if (u.agentId) { const a = agents[u.agentId]; if (a === selected) pet(a); else select(a); return; }
+    if (u.agentId) { const a = agents[u.agentId]; if (a === selected) pet(a); else if (a.remote) { if (busyCheck(selected)) return; const q = a.root.position; selected.goTo(freeSpot(q, selected.root.position, 1.3), () => pet(selected), q); } else select(a); return; }
     if (u.npc) { commandNpc(u.npc); return; }
     if (u.bug) { commandBug(u.bug); return; }
     if (u.shellIdx !== undefined) { let o = h.object; while (o && !o.isGroup) o = o.parent; if (shells[u.shellIdx].visible) { commandShell(u.shellIdx); return; } continue; }
@@ -3146,8 +3368,10 @@ function loop(now) {
     acc = 0; updateCards(); plots.forEach((_, i) => refreshPlot(i));
     for (const [k, t] of trees.entries()) t.fruits.visible = treeReady(k);
     nearInter = null;
-    if (!selected.busy) { let bd = 1.7; const p = selected.root.position; for (const it of L.inters) { if (it.enabled && !it.enabled()) continue; const d = Math.hypot(p.x - it.approach.x, p.z - it.approach.z); if (d < bd) { bd = d; nearInter = it; } } }
-    const inf = nearInter ? nearInter.info() : { icon: '📣', text: 'Позвать' };
+    if (!selected.busy) { let bd = 2.2; const p = selected.root.position; for (const it of L.inters) { if (it.enabled && !it.enabled()) continue; const d = Math.min(Math.hypot(p.x - it.approach.x, p.z - it.approach.z), Math.hypot(p.x - it.pos.x, p.z - it.pos.z) - 1.3); if (d < bd) { bd = d; nearInter = it; } } }
+    const inf = nearInter ? nearInter.info() : { icon: '✋', text: 'Подойди ближе' };
+    $('actBtn').classList.toggle('idle', !nearInter); $('nearHint').classList.toggle('hidden', !nearInter); if (nearInter) $('nearHint').textContent = `${inf.icon} ${inf.text}`;
+    updateQuestChip();
     if ($('actIcon').textContent !== inf.icon) { const ic = $('actIcon'); ic.textContent = inf.icon; ic.classList.remove('swap'); void ic.offsetWidth; ic.classList.add('swap'); }
     $('actLabel').textContent = inf.text; $('actBtn').classList.toggle('near', !!nearInter);
   }
@@ -3199,7 +3423,7 @@ if (loaded.fresh) { $('intro').classList.remove('hidden'); $('introGo').onclick 
 document.addEventListener('visibilitychange', () => { if (document.hidden) { lastCloud = 0; saveLocal(); syncNow(); } else syncNow(); });
 updateCoop(); syncNow();
 requestAnimationFrame(loop);
-if (['localhost', '127.0.0.1'].includes(location.hostname)) window.__dbg = { travel, agents, state, LOCS, INTERS, commandInter, applyTime, refreshBday, openMenu, openMall, emote, openNpc, commandBug, syncNow, fam, me, merge3, playFilm, FILMS, openScreen, openDecor, startEdit, endEdit, mgTiming, mgBarista, mgOffice, get edit() { return edit; }, get L() { return L; } };
+if (['localhost', '127.0.0.1'].includes(location.hostname)) window.__dbg = { travel, agents, state, LOCS, INTERS, commandInter, applyTime, refreshBday, openMenu, openMall, emote, openNpc, commandBug, syncNow, fam, me, merge3, live, liveTick, playFilm, FILMS, openScreen, openDecor, startEdit, endEdit, mgTiming, mgBarista, mgOffice, get edit() { return edit; }, get L() { return L; } };
 </script>
 </body>
 </html>
