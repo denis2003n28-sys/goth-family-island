@@ -407,7 +407,7 @@ async function loadState() {
   return { s, fresh: false };
 }
 // ---- shared family island (Firebase Realtime Database REST) ----
-const FB_URL = ''; // e.g. https://goth-family-default-rtdb.europe-west1.firebasedatabase.app
+const FB_URL = 'https://gothisland-a110a-default-rtdb.europe-west1.firebasedatabase.app';
 const SYNC_BASE = ['localhost', '127.0.0.1'].includes(location.hostname) ? 'http://127.0.0.1:8792' : FB_URL;
 const fam = { id: localStorage.getItem('gf_family') || '', base: null, busy: false, ok: false, err: '', last: 0, players: {}, noEtag: false, partnerSeen: false, timer: 0 };
 try { fam.base = JSON.parse(localStorage.getItem('gf_base_' + fam.id) || 'null'); } catch (e) {}
