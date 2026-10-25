@@ -1,0 +1,1212 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Goth Family Island</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--pink:#ff6fa3;--card:rgba(26,8,17,.8);--line:rgba(255,140,185,.45)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;overflow:hidden;background:#7d0f37;font-family:'Nunito',system-ui,sans-serif;color:#fff;overscroll-behavior:none}
+#stage{position:fixed;inset:0}
+#stage canvas{display:block;touch-action:none}
+#hud{position:fixed;inset:0;pointer-events:none}
+#top{position:absolute;top:calc(env(safe-area-inset-top) + 8px);left:8px;right:8px;display:flex;gap:6px;align-items:flex-start;pointer-events:auto}
+#chars{display:flex;gap:5px;flex:1;min-width:0}
+.card{flex:1;min-width:0;background:var(--card);border:2px solid transparent;border-radius:14px;padding:4px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.card.sel{border-color:var(--pink);box-shadow:0 0 0 3px rgba(255,111,163,.25)}
+.card canvas{width:40px;height:40px}
+.card .nm{font-size:10px;font-weight:900;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bars{width:100%;display:flex;flex-direction:column;gap:2px;padding:0 2px}
+.bar{height:4px;border-radius:3px;background:rgba(255,255,255,.13);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:3px;transition:width .3s}
+.b-h i{background:#ffb04a}.b-f i{background:#ff6fa3}.b-e i{background:#8fd3ff}
+#coins{background:var(--card);border-radius:14px;padding:8px 10px;font-weight:900;white-space:nowrap;font-size:14px;transition:transform .15s}
+#coins.pop{transform:scale(1.2)}
+#labels{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+#labels > div{position:absolute;left:0;top:0;will-change:transform;white-space:nowrap}
+.bubble{background:#fff;border-radius:14px;padding:1px 6px;font-size:18px;box-shadow:0 3px 0 rgba(0,0,0,.25)}
+.float{font-size:22px;font-weight:900;text-shadow:0 2px 3px rgba(0,0,0,.5)}
+.place{font-size:11px;font-weight:900;background:rgba(26,8,17,.62);padding:2px 8px;border-radius:9px}
+.plotlbl{font-size:11px;background:rgba(26,8,17,.75);border-radius:8px;padding:1px 6px;font-weight:900}
+#tools{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 150px);display:flex;gap:8px;pointer-events:auto}
+.tool{width:60px;height:58px;border-radius:18px;background:var(--card);border:2px solid var(--line);color:#fff;font-size:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;font-family:inherit}
+.tool span{font-size:9px;font-weight:900}
+.tool:active,#actBtn:active{transform:scale(.93)}
+#joy{position:absolute;left:18px;bottom:calc(env(safe-area-inset-bottom) + 14px);width:130px;height:130px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.08),rgba(26,8,17,.6));border:2px solid var(--line);pointer-events:auto;touch-action:none}
+#knob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px;border-radius:50%;background:linear-gradient(#ff8ab5,#e0457c);box-shadow:0 4px 0 #8c1b45,0 6px 14px rgba(0,0,0,.4)}
+#actBtn{position:absolute;right:18px;bottom:calc(env(safe-area-inset-bottom) + 24px);width:100px;height:100px;border-radius:50%;border:none;background:linear-gradient(#ff8ab5,#d93a73);color:#fff;font:900 12px 'Nunito',sans-serif;box-shadow:0 5px 0 #8c1b45,0 8px 18px rgba(0,0,0,.35);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;pointer-events:auto;padding:4px}
+#actBtn .ic{font-size:30px;line-height:1}
+#actBtn.near{animation:pulse 1s infinite}
+@keyframes pulse{50%{box-shadow:0 5px 0 #8c1b45,0 0 0 8px rgba(255,111,163,.35)}}
+#toast{position:absolute;top:calc(env(safe-area-inset-top) + 92px);left:50%;transform:translateX(-50%);background:rgba(26,8,17,.92);border:2px solid var(--pink);padding:8px 14px;border-radius:14px;font-weight:800;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:92vw;text-align:center}
+#toast.on{opacity:1}
+#sheet{position:absolute;inset:0;background:rgba(10,2,6,.45);display:flex;align-items:flex-end;pointer-events:auto}
+.hidden{display:none!important}
+.sheet-card{width:100%;max-height:72%;background:#1d0a15;border-top:2px solid var(--pink);border-radius:22px 22px 0 0;padding:14px 14px calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;font-size:17px}
+.sheet-head button,.btn{background:#3a1428;border:2px solid var(--line);color:#fff;border-radius:12px;padding:6px 12px;font:900 13px 'Nunito',sans-serif}
+#sheetTabs{display:flex;gap:6px}
+#sheetTabs:empty{display:none}
+#sheetTabs button{flex:1;background:#2a1020;border:2px solid #4a1b33;color:#fff;border-radius:12px;padding:7px;font:900 13px 'Nunito',sans-serif}
+#sheetTabs button.on{border-color:var(--pink);background:#4a1630}
+#sheetBody{overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+.tile{background:#2a1020;border:2px solid #4a1b33;border-radius:16px;padding:10px 6px;color:#fff;display:flex;flex-direction:column;align-items:center;gap:3px;font:800 12px 'Nunito',sans-serif}
+.tile .e{font-size:30px;line-height:1.1}
+.tile .s{font-size:10px;opacity:.75;font-weight:700}
+.tile.sel{border-color:var(--pink);background:#4a1630}
+.tile:disabled{opacity:.4}
+.sec{grid-column:1/-1;font-weight:900;opacity:.85;margin-top:4px;font-size:13px}
+.empty{grid-column:1/-1;text-align:center;opacity:.85;padding:18px 8px;font-weight:800;line-height:1.4}
+.row{grid-column:1/-1;display:flex;gap:8px}
+.row input{flex:1;min-width:0;background:#2a1020;border:2px solid #4a1b33;border-radius:12px;color:#fff;padding:8px 10px;font:800 14px 'Nunito',sans-serif;user-select:text;-webkit-user-select:text}
+#intro{position:absolute;inset:0;background:rgba(40,4,18,.82);display:flex;align-items:center;justify-content:center;padding:20px;pointer-events:auto}
+#intro .box{background:#1d0a15;border:2px solid var(--pink);border-radius:22px;padding:20px;max-width:360px;line-height:1.45;font-weight:700;font-size:14px}
+#intro h1{margin:0 0 8px;font-size:22px;font-weight:900}
+#intro .btn{width:100%;margin-top:14px;padding:12px;font-size:16px;background:linear-gradient(#ff8ab5,#d93a73);border:none}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="hud">
+  <div id="labels"></div>
+  <div id="top"><div id="chars"></div><div id="coins">🪙 <span id="coinVal">0</span></div></div>
+  <div id="tools">
+    <button class="tool" data-act="feed">🍽<span>Кормить</span></button>
+    <button class="tool" data-act="dress">👕<span>Наряд</span></button>
+    <button class="tool" data-act="pet">💗<span>Ласка</span></button>
+    <button class="tool" data-act="bag">🎒<span>Рюкзак</span></button>
+  </div>
+  <div id="joy"><div id="knob"></div></div>
+  <button id="actBtn"><span class="ic" id="actIcon">📣</span><span id="actLabel">Позвать</span></button>
+  <div id="toast"></div>
+  <div id="sheet" class="hidden"><div class="sheet-card">
+    <div class="sheet-head"><b id="sheetTitle"></b><button id="sheetClose">✕</button></div>
+    <div id="sheetTabs"></div>
+    <div id="sheetBody"></div>
+  </div></div>
+  <div id="intro" class="hidden"><div class="box">
+    <h1>🖤 Goth Family Island</h1>
+    Ваш маленький остров. Заботься о семье: корми, переодевай, обнимай и выращивай урожай.<br><br>
+    🕹 <b>Джойстик</b> — ходить<br>
+    👆 <b>Тап по земле</b> — идти туда<br>
+    🌱 <b>Тап по грядке, дому, лавке, дереву, пруду</b> — персонаж пойдёт и сделает дело<br>
+    👤 <b>Тап по персонажу</b> — выбрать, второй тап — погладить<br>
+    🏪 Семена и еду покупай в лавке, урожай продавай там же
+    <button class="btn" id="introGo">Играть 💕</button>
+  </div></div>
+</div>
+
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+// ---------- Telegram ----------
+const tg = window.Telegram?.WebApp;
+try { tg?.ready(); tg?.expand(); tg?.disableVerticalSwipes?.(); tg?.setHeaderColor?.('#7d0f37'); tg?.setBackgroundColor?.('#7d0f37'); } catch (e) {}
+const haptic = (k = 'light') => { try { tg?.HapticFeedback?.impactOccurred(k); } catch (e) {} };
+const hapticOk = () => { try { tg?.HapticFeedback?.notificationOccurred('success'); } catch (e) {} };
+const hasCloud = () => { try { return !!tg?.CloudStorage && tg.isVersionAtLeast?.('6.9'); } catch (e) { return false; } };
+
+// ---------- data ----------
+const CROPS = {
+  strawberry: { name: 'Клубника', emoji: '🍓', seed: 10, sell: 22, grow: 45, yield: [2, 3], food: { hunger: 14, fun: 10 } },
+  carrot: { name: 'Морковка', emoji: '🥕', seed: 8, sell: 16, grow: 30, yield: [2, 3], food: { hunger: 16, fun: 4 } },
+  tomato: { name: 'Помидор', emoji: '🍅', seed: 14, sell: 30, grow: 60, yield: [2, 4], food: { hunger: 18, fun: 6 } },
+  pumpkin: { name: 'Тыква', emoji: '🎃', seed: 25, sell: 75, grow: 120, yield: [1, 1], food: { hunger: 45, fun: 12 } },
+};
+const FOODS = {
+  cake: { name: 'Тортик', emoji: '🍰', price: 30, food: { hunger: 25, fun: 25 } },
+  onigiri: { name: 'Онигири', emoji: '🍙', price: 18, food: { hunger: 30, fun: 5 } },
+  milk: { name: 'Молочко', emoji: '🍼', price: 12, food: { hunger: 18, fun: 8 } },
+  fish: { name: 'Рыбка', emoji: '🐟', price: 16, sell: 12, food: { hunger: 28, fun: 8 } },
+  coffee: { name: 'Кофе', emoji: '☕', price: 15, food: { hunger: 4, fun: 4, energy: 35 } },
+  cherry: { name: 'Вишня', emoji: '🍒', sell: 8, food: { hunger: 8, fun: 8 } },
+};
+const itemInfo = id => CROPS[id] || FOODS[id];
+
+const CHARS = {
+  mom: { name: 'Мама', fem: true, kind: 'human', scale: 1, face: 'mom', hair: 'long', speed: 4.6, likes: ['strawberry', 'cake', 'coffee'],
+    outfits: {
+      goth: { label: 'Готика', emoji: '🖤', top: '#141014', crop: true, jacket: '#1a131b', puffy: true, sleeves: 'long', sleeve: '#1a131b', pants: '#1b1619', print: 'metal', hair: '#4e0d1c', chains: true },
+      rose: { label: 'Розочка', emoji: '🌸', top: '#f29bb8', crop: true, sleeves: 'short', pants: '#2a2228', print: 'heart', hair: '#4e0d1c' },
+      vamp: { label: 'Вампир', emoji: '🦇', top: '#7d0c2b', sleeves: 'long', pants: '#1a1a1a', plaid: '#6b0f2a', print: 'metal', hair: '#1b1114', chains: true },
+      snow: { label: 'Снежок', emoji: '🤍', top: '#f4eef0', sleeves: 'long', pants: '#3a2b3a', print: 'star', hair: '#d9d0d8' },
+    } },
+  dad: { name: 'Папа', fem: false, kind: 'human', scale: 1.12, face: 'dad', hair: 'messy', speed: 4.8, likes: ['pumpkin', 'onigiri', 'coffee'],
+    outfits: {
+      goth: { label: 'Готика', emoji: '🖤', top: '#151215', sleeves: 'long', stripes: true, pants: '#2a1d22', plaid: '#5c1428', print: 'metal', hair: '#2a1712', chains: true },
+      blood: { label: 'Кровавый', emoji: '🩸', top: '#8f0f33', sleeves: 'long', stripes: true, pants: '#141214', print: 'skull', hair: '#2a1712' },
+      ash: { label: 'Пепел', emoji: '🩶', top: '#5b565b', sleeves: 'long', pants: '#1c1a1c', print: 'skull', hair: '#e8e1e6' },
+      sweet: { label: 'Милашка', emoji: '💗', top: '#ef8fb0', sleeves: 'short', pants: '#1c1a1c', print: 'heart', hair: '#2a1712' },
+    } },
+  kid: { name: 'Малышка', fem: true, kind: 'human', scale: 0.6, headScale: 1.32, face: 'kid', hair: 'bun', speed: 3.9, likes: ['milk', 'strawberry', 'cake'],
+    outfits: {
+      kitty: { label: 'Китти', emoji: '🐱', top: '#161216', sleeves: 'long', pants: '#241b20', plaid: '#4a1a2a', print: 'kitty', hair: '#5a1222' },
+      candy: { label: 'Конфетка', emoji: '🍬', top: '#f7b3cb', sleeves: 'long', pants: '#2b2328', print: 'kitty', hair: '#5a1222' },
+      bunny: { label: 'Зайка', emoji: '🐰', top: '#f6f1f3', sleeves: 'long', pants: '#9b1a45', print: 'heart', hair: '#5a1222' },
+    } },
+  cat: { name: 'Котик', fem: false, kind: 'cat', scale: 1, face: 'cat', speed: 5.2, likes: ['fish', 'milk'], eats: ['fish', 'milk', 'cake', 'onigiri', 'cherry'],
+    outfits: {
+      spikes: { label: 'Шипы', emoji: '⛓️', collar: 'spikes' },
+      bow: { label: 'Бантик', emoji: '🎀', collar: 'bow' },
+      bell: { label: 'Колокольчик', emoji: '🔔', collar: 'bell' },
+    } },
+};
+const ORDER = ['mom', 'dad', 'kid', 'cat'];
+const KEY = 'gothfamily_v1';
+const SKIN = '#e9b48f';
+const R_WALK = 19;
+
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rnd = (a, b) => a + Math.random() * (b - a);
+const randInt = ([a, b]) => a + Math.floor(Math.random() * (b - a + 1));
+function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const nm = id => state.chars[id].name || CHARS[id].name;
+const fem = (a, f, m) => a.def.fem ? f : m;
+
+// ---------- save ----------
+function defaultState() {
+  return {
+    v: 1, coins: 120, seeds: { strawberry: 3, carrot: 3, tomato: 1, pumpkin: 0 },
+    inv: { fish: 1, milk: 1, cake: 1, onigiri: 1 }, plots: [null, null, null, null, null, null], trees: {}, selected: 'mom',
+    chars: {
+      mom: { outfit: 'goth', x: -1.2, z: -4.5, stats: { hunger: 70, fun: 80, energy: 85 } },
+      dad: { outfit: 'goth', x: 1.4, z: -4.6, stats: { hunger: 65, fun: 75, energy: 80 } },
+      kid: { outfit: 'kitty', x: 0, z: -3, stats: { hunger: 55, fun: 70, energy: 90 } },
+      cat: { outfit: 'spikes', x: 2.2, z: -2.6, stats: { hunger: 50, fun: 65, energy: 80 } },
+    }, savedAt: Date.now(),
+  };
+}
+function merge(def, s) {
+  for (const k in def) {
+    if (s[k] === undefined || s[k] === null && def[k] !== null) s[k] = def[k];
+    else if (def[k] && typeof def[k] === 'object' && !Array.isArray(def[k])) merge(def[k], s[k]);
+  }
+  return s;
+}
+async function loadState() {
+  let local = null, cloud = null;
+  try { local = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+  if (hasCloud()) cloud = await new Promise(res => {
+    const to = setTimeout(() => res(null), 1500);
+    try { tg.CloudStorage.getItem(KEY, (err, v) => { clearTimeout(to); try { res(v ? JSON.parse(v) : null); } catch (e) { res(null); } }); }
+    catch (e) { clearTimeout(to); res(null); }
+  });
+  const s = [local, cloud].filter(Boolean).sort((a, b) => b.savedAt - a.savedAt)[0];
+  if (!s) return { s: defaultState(), fresh: true };
+  merge(defaultState(), s);
+  for (const id of ORDER) if (!CHARS[id].outfits[s.chars[id].outfit]) s.chars[id].outfit = Object.keys(CHARS[id].outfits)[0];
+  // offline: needs drift slowly, never below 15
+  const el = clamp((Date.now() - s.savedAt) / 1000, 0, 8 * 3600) * 0.08;
+  for (const id of ORDER) {
+    const st = s.chars[id].stats;
+    st.hunger = Math.max(Math.min(st.hunger, 15), st.hunger - el * 0.22);
+    st.fun = Math.max(Math.min(st.fun, 15), st.fun - el * 0.16);
+    st.energy = Math.max(Math.min(st.energy, 15), st.energy - el * 0.1);
+  }
+  return { s, fresh: false };
+}
+let lastCloud = 0;
+function save() {
+  if (!agents) return;
+  for (const id of ORDER) { const a = agents[id]; state.chars[id].x = +a.root.position.x.toFixed(2); state.chars[id].z = +a.root.position.z.toFixed(2); state.chars[id].outfit = a.outfit; }
+  state.selected = selected.id; state.savedAt = Date.now();
+  const s = JSON.stringify(state);
+  try { localStorage.setItem(KEY, s); } catch (e) {}
+  if (hasCloud() && Date.now() - lastCloud > 10000) { lastCloud = Date.now(); try { tg.CloudStorage.setItem(KEY, s, () => {}); } catch (e) {} }
+}
+
+// ---------- three setup ----------
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+stage.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#b8174f');
+scene.fog = new THREE.Fog('#b8174f', 40, 85);
+const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 200);
+scene.add(new THREE.HemisphereLight('#ffd9e8', '#6a1838', 1.25));
+const sun = new THREE.DirectionalLight('#fff2f6', 2.1);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+Object.assign(sun.shadow.camera, { left: -16, right: 16, top: 16, bottom: -16, near: 1, far: 60 });
+sun.shadow.bias = -0.0008;
+scene.add(sun, sun.target);
+
+const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.82, ...o });
+function rb(w, h, d, m, r = 0.06) {
+  const mesh = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 2, Math.min(r, w / 2 - 0.002, h / 2 - 0.002, d / 2 - 0.002)), m);
+  mesh.castShadow = mesh.receiveShadow = true; return mesh;
+}
+const shade = (hex, a) => new THREE.Color(hex).offsetHSL(0, 0, a);
+function disposeTree(o) { o.traverse(m => { m.geometry?.dispose(); if (m.material) [].concat(m.material).forEach(x => x.dispose()); }); }
+
+// ---------- canvas art ----------
+function ell(x, cx, cy, rx, ry) { x.beginPath(); x.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); x.fill(); }
+function heartPath(x, cx, cy, s) { x.beginPath(); x.moveTo(cx, cy + s * 0.9); x.bezierCurveTo(cx - s * 1.6, cy - s * 0.1, cx - s * 0.6, cy - s * 1.2, cx, cy - s * 0.45); x.bezierCurveTo(cx + s * 0.6, cy - s * 1.2, cx + s * 1.6, cy - s * 0.1, cx, cy + s * 0.9); x.closePath(); }
+function starPath(x, cx, cy, R, r) { x.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, q = i % 2 ? r : R; x.lineTo(cx + Math.cos(a) * q, cy + Math.sin(a) * q); } x.closePath(); }
+
+function drawFace(x, type, mood) {
+  const dark = '#1c0f12'; x.lineCap = 'round'; x.lineJoin = 'round';
+  const sad = mood === 'sad', sleep = mood === 'sleep';
+  const closed = (cx, cy, w, up) => { x.strokeStyle = dark; x.lineWidth = 7; x.beginPath(); if (up) x.arc(cx, cy + 8, w, Math.PI * 1.15, Math.PI * 1.85); else x.arc(cx, cy - 6, w, Math.PI * 0.15, Math.PI * 0.85); x.stroke(); };
+  const blush = a => { x.fillStyle = `rgba(240,110,140,${a})`; ell(x, 70, 170, 22, 11); ell(x, 186, 170, 22, 11); };
+  const frown = (y, c) => { x.strokeStyle = c; x.lineWidth = 6; x.beginPath(); x.arc(128, y + 16, 16, Math.PI * 1.2, Math.PI * 1.8); x.stroke(); };
+  if (type === 'mom') {
+    x.strokeStyle = '#2a1216'; x.lineWidth = 7;
+    x.beginPath(); x.moveTo(58, sad ? 100 : 96); x.quadraticCurveTo(80, sad ? 88 : 84, 106, sad ? 84 : 92); x.stroke();
+    x.beginPath(); x.moveTo(198, sad ? 100 : 96); x.quadraticCurveTo(176, sad ? 88 : 84, 150, sad ? 84 : 92); x.stroke();
+    if (sleep) { closed(82, 134, 20, false); closed(174, 134, 20, false); }
+    else for (const [cx, dir] of [[82, -1], [174, 1]]) {
+      x.fillStyle = dark; ell(x, cx, 136, 21, sad ? 16 : 20);
+      x.fillStyle = '#5a3328'; ell(x, cx, 140, 11, 11);
+      x.fillStyle = '#fff'; ell(x, cx - 7, 128, 6, 6); ell(x, cx + 6, 144, 3, 3);
+      x.strokeStyle = dark; x.lineWidth = 6; x.beginPath(); x.arc(cx, 140, 25, Math.PI * 1.1, Math.PI * 1.9); x.stroke();
+      x.lineWidth = 4; x.beginPath(); const ex = cx + dir * 24; x.moveTo(ex, 128); x.lineTo(ex + dir * 12, 117); x.stroke();
+    }
+    blush(0.3);
+    if (sad) frown(196, '#b8505f');
+    else { x.fillStyle = '#d76c7c'; ell(x, 128, 202, 17, 9); x.fillStyle = '#ec9aa5'; ell(x, 123, 199, 6, 3); x.strokeStyle = '#a4434f'; x.lineWidth = 2; x.beginPath(); x.moveTo(112, 202); x.lineTo(144, 202); x.stroke(); }
+  } else if (type === 'dad') {
+    x.strokeStyle = '#1a0e0c'; x.lineWidth = 9;
+    x.beginPath(); x.moveTo(56, sad ? 98 : 106); x.lineTo(106, sad ? 110 : 98); x.stroke();
+    x.beginPath(); x.moveTo(200, sad ? 98 : 106); x.lineTo(150, sad ? 110 : 98); x.stroke();
+    if (sleep) { closed(82, 134, 18, false); closed(174, 134, 18, false); }
+    else for (const cx of [82, 174]) {
+      x.fillStyle = dark; x.beginPath(); x.moveTo(cx - 22, 124); x.lineTo(cx + 22, 124); x.quadraticCurveTo(cx + 20, 148, cx, 149); x.quadraticCurveTo(cx - 20, 148, cx - 22, 124); x.fill();
+      x.fillStyle = '#fff'; ell(x, cx - 6, 132, 4, 4);
+    }
+    if (sad) frown(194, '#5a2a22');
+    else { x.strokeStyle = '#5a2a22'; x.lineWidth = 5; x.beginPath(); x.moveTo(110, 196); x.quadraticCurveTo(132, 207, 150, 191); x.stroke(); }
+    x.strokeStyle = '#2b1a1a'; x.lineWidth = 3; x.beginPath(); x.moveTo(206, 150); x.lineTo(206, 174); x.moveTo(198, 158); x.lineTo(214, 158); x.stroke();
+  } else if (type === 'kid') {
+    if (sleep) { closed(80, 128, 20, false); closed(176, 128, 20, false); }
+    else if (sad) { for (const cx of [80, 176]) { x.fillStyle = dark; ell(x, cx, 128, 20, 22); x.fillStyle = '#fff'; ell(x, cx - 6, 120, 6, 6); } x.fillStyle = '#7ec8f0'; ell(x, 64, 162, 6, 10); }
+    else { closed(80, 128, 22, true); x.fillStyle = dark; ell(x, 176, 128, 21, 23); x.fillStyle = '#fff'; ell(x, 169, 119, 7, 7); ell(x, 182, 138, 3, 3); x.strokeStyle = dark; x.lineWidth = 5; x.beginPath(); x.moveTo(196, 112); x.lineTo(207, 102); x.stroke(); }
+    blush(0.45);
+    x.fillStyle = '#f3a7bf'; ell(x, 128, 198, 30, 24); x.fillStyle = '#f8c6d6'; ell(x, 128, 198, 20, 15);
+    x.fillStyle = '#e48aa7'; ell(x, 115, 185, 6, 6); ell(x, 141, 185, 6, 6);
+    x.fillStyle = '#8a3a52'; ell(x, 122, 197, 2.5, 2.5); ell(x, 134, 197, 2.5, 2.5);
+  } else if (type === 'cat') {
+    if (sleep || sad) { x.strokeStyle = dark; x.lineWidth = 8; x.beginPath(); x.moveTo(52, 126); x.lineTo(100, sad ? 118 : 126); x.moveTo(156, sad ? 118 : 126); x.lineTo(204, 126); x.stroke(); }
+    else { x.fillStyle = dark; x.beginPath(); x.roundRect(52, 96, 50, 54, 10); x.roundRect(154, 96, 50, 54, 10); x.fill(); x.fillStyle = '#fff'; x.fillRect(60, 104, 12, 12); x.fillRect(162, 104, 12, 12); }
+    x.fillStyle = '#c25f73'; x.beginPath(); x.moveTo(116, 162); x.lineTo(140, 162); x.lineTo(128, 176); x.fill();
+    x.strokeStyle = '#8f4050'; x.lineWidth = 4; x.beginPath(); x.moveTo(128, 176); x.quadraticCurveTo(120, 190, 110, 184); x.moveTo(128, 176); x.quadraticCurveTo(136, 190, 146, 184); x.stroke();
+  }
+}
+
+const texCache = {};
+function canvasTex(key, w, h, draw, repeat) {
+  if (texCache[key]) return texCache[key];
+  const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'));
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  if (repeat) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(repeat, repeat); }
+  return texCache[key] = t;
+}
+function printTex(kind) {
+  return canvasTex('print_' + kind, 256, 160, x => {
+    const W = '#f2eef0'; x.lineCap = 'round';
+    if (kind === 'metal') {
+      x.strokeStyle = W; const r = mulberry(7);
+      for (let i = 0; i < 34; i++) {
+        const px = 26 + r() * 100, up = r() < 0.5, len = 10 + r() * 36, y0 = up ? 60 : 100, dx = (r() - 0.5) * 18; x.lineWidth = 1.5 + r() * 2.5;
+        for (const [sx, ddx] of [[px, dx], [256 - px, -dx]]) { x.beginPath(); x.moveTo(sx, y0); x.lineTo(sx + ddx, y0 + (up ? -len : len)); x.stroke(); }
+      }
+      x.font = 'italic 900 56px Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.fillStyle = W; x.fillText('ABYSS', 128, 82); x.strokeStyle = '#1a1418'; x.lineWidth = 1.5; x.strokeText('ABYSS', 128, 82);
+    } else if (kind === 'kitty') {
+      x.fillStyle = W;
+      x.beginPath(); x.moveTo(74, 66); x.lineTo(86, 22); x.lineTo(116, 50); x.moveTo(182, 66); x.lineTo(170, 22); x.lineTo(140, 50); x.fill();
+      ell(x, 128, 88, 64, 46);
+      x.fillStyle = '#111'; ell(x, 102, 90, 6, 9); ell(x, 154, 90, 6, 9);
+      x.fillStyle = '#f5c542'; ell(x, 128, 104, 8, 5);
+      x.strokeStyle = '#222'; x.lineWidth = 3;
+      for (const s of [-1, 1]) for (const k of [-8, 0, 8]) { x.beginPath(); x.moveTo(128 + s * 44, 100 + k * 0.6); x.lineTo(128 + s * 74, 96 + k); x.stroke(); }
+      x.fillStyle = '#f06292'; x.beginPath(); x.moveTo(170, 42); x.lineTo(150, 28); x.lineTo(150, 56); x.moveTo(170, 42); x.lineTo(190, 28); x.lineTo(190, 56); x.fill(); ell(x, 170, 42, 8, 8);
+    } else if (kind === 'heart') {
+      heartPath(x, 128, 84, 46); x.fillStyle = '#ff5c93'; x.fill(); x.strokeStyle = W; x.lineWidth = 6; x.stroke();
+    } else if (kind === 'star') {
+      starPath(x, 128, 82, 58, 24); x.fillStyle = '#1b1418'; x.fill(); x.strokeStyle = '#ff6fa3'; x.lineWidth = 5; x.stroke();
+    } else if (kind === 'skull') {
+      x.fillStyle = W; ell(x, 128, 70, 44, 40); x.beginPath(); x.roundRect(102, 92, 52, 34, 8); x.fill();
+      x.fillStyle = '#1a1418'; ell(x, 110, 72, 13, 13); ell(x, 146, 72, 13, 13);
+      x.beginPath(); x.moveTo(128, 86); x.lineTo(120, 100); x.lineTo(136, 100); x.fill();
+      x.fillRect(114, 108, 3, 16); x.fillRect(126, 108, 3, 16); x.fillRect(138, 108, 3, 16);
+    }
+  });
+}
+function plaidTex(base, accent) {
+  return canvasTex('plaid_' + base + accent, 64, 64, x => {
+    x.fillStyle = base; x.fillRect(0, 0, 64, 64);
+    x.globalAlpha = 0.8; x.fillStyle = accent; x.fillRect(0, 26, 64, 12); x.fillRect(26, 0, 12, 64);
+    x.globalAlpha = 0.5; x.fillStyle = '#000'; x.fillRect(0, 8, 64, 4); x.fillRect(8, 0, 4, 64);
+    x.globalAlpha = 0.35; x.fillStyle = '#ddd'; x.fillRect(0, 50, 64, 2); x.fillRect(50, 0, 2, 64);
+  }, 2);
+}
+function makeFacePlane(w, h) {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: tex, transparent: true, alphaTest: 0.05, roughness: 0.8 }));
+  return { mesh, ctx: c.getContext('2d'), tex };
+}
+
+// ---------- character models ----------
+function buildHair(kind, head, hm) {
+  const add = (w, h, d, x, y, z, rx = 0, ry = 0, rz = 0, r = 0.05) => { const m = rb(w, h, d, hm, r); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); head.add(m); return m; };
+  if (kind === 'long') {
+    add(1.02, 0.26, 0.94, 0, 0.9, -0.01);
+    add(1.02, 0.24, 0.14, 0, 0.75, 0.42);
+    add(1.04, 1.7, 0.16, 0, 0.05, -0.45);
+    for (const sd of [-1, 1]) { add(0.16, 1.5, 0.5, sd * 0.52, 0.12, 0.1); add(0.14, 0.5, 0.5, sd * 0.52, 0.62, -0.2); }
+  } else if (kind === 'messy') {
+    add(1.0, 0.3, 0.92, 0, 0.86, -0.02, 0, 0, 0, 0.08);
+    add(1.0, 0.55, 0.14, 0, 0.6, -0.43);
+    for (const sd of [-1, 1]) add(0.12, 0.42, 0.72, sd * 0.5, 0.66, -0.05);
+    const tufts = [[-.35, .98, .3, .4, 0, .3], [0, 1.02, .35, .5, 0, 0], [.33, .98, .3, .4, 0, -.3], [-.2, 1.06, -.1, .2, .4, .5], [.25, 1.06, -.2, -.2, .3, -.5], [0, 1.0, -.35, -.4, 0, 0], [-.42, .85, .4, .6, 0, .6], [.42, .85, .4, .6, 0, -.6], [-.14, .82, .44, .9, 0, .2], [.16, .82, .44, .9, 0, -.25], [-.45, 1.0, -.2, .3, .5, .8], [.45, 1.0, -.1, -.3, .2, -.8]];
+    for (const t of tufts) add(0.32, 0.3, 0.32, t[0], t[1], t[2], t[3], t[4], t[5], 0.06);
+  } else if (kind === 'bun') {
+    add(1.0, 0.26, 0.92, 0, 0.9, -0.01);
+    add(1.0, 0.2, 0.14, 0, 0.77, 0.42);
+    add(1.02, 0.75, 0.16, 0, 0.48, -0.44);
+    for (const sd of [-1, 1]) add(0.14, 0.75, 0.42, sd * 0.51, 0.45, 0.14);
+    const bun = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 12), hm); bun.position.set(0, 1.12, -0.12); bun.castShadow = true; head.add(bun);
+    const pm = M('#f59ab8');
+    const clip = rb(0.24, 0.06, 0.04, pm, 0.02); clip.position.set(-0.26, 0.74, 0.5); clip.rotation.z = 0.15; head.add(clip);
+    const star = new THREE.Mesh(new THREE.OctahedronGeometry(0.1), pm); star.position.set(0.3, 0.8, 0.5); star.scale.z = 0.4; head.add(star);
+  }
+}
+function makeBunny() {
+  const g = new THREE.Group(), gm = M('#3b3438'), pk = M('#e88aa6');
+  g.add(rb(0.36, 0.4, 0.3, gm, 0.1));
+  const h = rb(0.42, 0.36, 0.34, gm, 0.12); h.position.y = 0.36; g.add(h);
+  for (const sd of [-1, 1]) { const e = rb(0.1, 0.5, 0.06, gm, 0.04); e.position.set(sd * 0.14, 0.62, -0.02); e.rotation.set(0.3, 0, sd * 0.6); g.add(e); }
+  const n = rb(0.07, 0.07, 0.02, pk, 0.01); n.position.set(0, 0.34, 0.175); g.add(n);
+  return g;
+}
+function makeHuman(def, o) {
+  const root = new THREE.Group(); root.scale.setScalar(def.scale);
+  const body = new THREE.Group(); root.add(body);
+  const skin = M(SKIN), white = M('#f3eef0'), black = M('#141114'), silver = M('#cfcad3', { metalness: 0.8, roughness: 0.3 });
+  const pantsMat = o.plaid ? new THREE.MeshStandardMaterial({ map: plaidTex(o.pants, o.plaid), roughness: 0.9 }) : M(o.pants);
+  const legs = [];
+  for (const sd of [-1, 1]) {
+    const g = new THREE.Group(); g.position.set(sd * 0.26, 1.02, 0); body.add(g);
+    const leg = rb(0.52, 0.9, 0.56, pantsMat, 0.07); leg.position.y = -0.42; g.add(leg);
+    const pk = rb(0.1, 0.3, 0.34, M(shade(o.pants, -0.04)), 0.03); pk.position.set(sd * 0.29, -0.45, 0); g.add(pk);
+    const shoe = rb(0.56, 0.26, 0.74, white, 0.09); shoe.position.set(0, -0.86, 0.08); g.add(shoe);
+    const sole = rb(0.58, 0.09, 0.76, M('#cfc4c9'), 0.03); sole.position.set(0, -0.975, 0.08); g.add(sole);
+    legs.push(g);
+  }
+  // upper body pivots at the hips so it can lean
+  const upper = new THREE.Group(); upper.position.y = 1.02; body.add(upper);
+  const inner = new THREE.Group(); inner.position.y = -1.02; upper.add(inner);
+  const topMat = M(o.top);
+  let printY;
+  if (o.crop) {
+    const sh = rb(1.0, 0.6, 0.52, topMat, 0.06); sh.position.y = 1.7; inner.add(sh);
+    const mid = rb(0.92, 0.26, 0.46, skin, 0.04); mid.position.y = 1.3; inner.add(mid);
+    const hip = rb(1.02, 0.2, 0.56, pantsMat, 0.04); hip.position.y = 1.08; inner.add(hip);
+    const belt = rb(1.06, 0.09, 0.6, black, 0.02); belt.position.y = 1.15; inner.add(belt);
+    const buckle = rb(0.16, 0.12, 0.04, silver, 0.01); buckle.position.set(0, 1.15, 0.31); inner.add(buckle);
+    printY = 1.7;
+  } else { const sh = rb(1.04, 1.0, 0.54, topMat, 0.07); sh.position.y = 1.5; inner.add(sh); printY = 1.6; }
+  if (o.print) {
+    const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.78, 0.49), new THREE.MeshStandardMaterial({ map: printTex(o.print), transparent: true, alphaTest: 0.05, roughness: 0.9 }));
+    pl.position.set(0, printY, o.crop ? 0.262 : 0.272); inner.add(pl);
+  }
+  if (o.jacket) {
+    const jm = M(o.jacket);
+    const back = rb(1.12, 0.95, 0.1, jm, 0.04); back.position.set(0, 1.52, -0.3); inner.add(back);
+    for (const sd of [-1, 1]) {
+      const side = rb(0.14, 0.95, 0.6, jm, 0.04); side.position.set(sd * 0.55, 1.52, 0); inner.add(side);
+      const fr = rb(0.2, 0.95, 0.08, jm, 0.03); fr.position.set(sd * 0.47, 1.52, 0.3); inner.add(fr);
+    }
+    const col = rb(1.14, 0.16, 0.62, jm, 0.05); col.position.y = 1.98; inner.add(col);
+  }
+  if (o.chains) {
+    const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(0.48, 1.12, 0.22), new THREE.Vector3(0.42, 0.78, 0.33), new THREE.Vector3(0.12, 1.06, 0.32)]);
+    const ch = new THREE.Mesh(new THREE.TubeGeometry(curve, 16, 0.022, 5), silver); inner.add(ch);
+    const cross = new THREE.Group(); cross.position.set(0, 1.92, 0.3);
+    if (!o.crop) cross.position.set(0, 1.88, 0.28);
+    const c1 = rb(0.03, 0.16, 0.02, silver, 0.005), c2 = rb(0.1, 0.03, 0.02, silver, 0.005); c2.position.y = 0.03; cross.add(c1, c2);
+    if (def.face === 'mom') { cross.position.set(0, 1.88, 0.28); inner.add(cross); }
+  }
+  const arms = []; const aw = o.puffy ? 0.5 : 0.42; const slM = M(o.sleeve || o.top);
+  for (const sd of [-1, 1]) {
+    const g = new THREE.Group(); g.position.set(sd * (0.52 + aw / 2 + 0.02), 1.92, 0); inner.add(g);
+    if (o.sleeves === 'short') {
+      const s = rb(aw + 0.04, 0.34, aw + 0.04, slM, 0.05); s.position.y = -0.12; g.add(s);
+      const a = rb(0.38, 0.7, 0.38, skin, 0.06); a.position.y = -0.62; g.add(a);
+    } else {
+      const s = rb(aw, 0.74, aw, slM, 0.07); s.position.y = -0.32; g.add(s);
+      const h = rb(0.38, 0.32, 0.38, skin, 0.07); h.position.y = -0.84; g.add(h);
+      if (o.stripes) for (const k of [-0.07, 0.07]) { const st = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.72, 0.06), white); st.position.set(sd * (aw / 2 + 0.005), -0.32, k); g.add(st); }
+    }
+    arms.push(g);
+  }
+  const hs = def.headScale || 1;
+  const head = new THREE.Group(); head.position.y = 2.02; head.scale.setScalar(hs); inner.add(head);
+  const hb = rb(0.92, 0.86, 0.82, skin, 0.1); hb.position.y = 0.43; head.add(hb);
+  const face = makeFacePlane(0.86, 0.8); face.mesh.position.set(0, 0.43, 0.413); head.add(face.mesh);
+  buildHair(def.hair, head, M(o.hair));
+  if (def.face === 'kid') { const b = makeBunny(); b.position.set(0, -0.95, 0.3); arms[1].add(b); }
+  return { root, body, upper, legs, arms, head, faceCtx: face.ctx, faceTex: face.tex, height: (2.02 + 0.95 * hs) * def.scale };
+}
+function makeCat(def, o) {
+  const root = new THREE.Group(); root.scale.setScalar(def.scale);
+  const body = new THREE.Group(); root.add(body);
+  const pk = M('#eaa2a8'), pkd = M('#d9848f'), blk = M('#141114'), silver = M('#d5d0d8', { metalness: 0.8, roughness: 0.3 });
+  const tor = rb(0.66, 0.56, 1.15, pk, 0.14); tor.position.y = 0.78; body.add(tor);
+  const legs = [];
+  for (const [x, z] of [[-0.2, 0.38], [0.2, 0.38], [-0.2, -0.38], [0.2, -0.38]]) {
+    const g = new THREE.Group(); g.position.set(x, 0.6, z); body.add(g);
+    const l = rb(0.2, 0.6, 0.22, pk, 0.06); l.position.y = -0.3; g.add(l); legs.push(g);
+  }
+  const head = new THREE.Group(); head.position.set(0, 1.18, 0.62); body.add(head);
+  const hb = rb(0.76, 0.64, 0.62, pk, 0.12); hb.position.y = 0.05; head.add(hb);
+  const face = makeFacePlane(0.7, 0.6); face.mesh.position.set(0, 0.05, 0.313); head.add(face.mesh);
+  for (const sd of [-1, 1]) {
+    const e = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.46, 4), pk); e.position.set(sd * 0.24, 0.55, 0); e.rotation.set(0, Math.PI / 4, -sd * 0.22); e.castShadow = true; head.add(e);
+    const ei = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.3, 4), pkd); ei.position.set(sd * 0.235, 0.5, 0.08); ei.rotation.copy(e.rotation); head.add(ei);
+  }
+  const tail = new THREE.Group(); tail.position.set(0, 0.95, -0.56); body.add(tail);
+  const t = rb(0.1, 0.1, 0.62, pk, 0.04); t.position.set(0, 0.2, -0.25); t.rotation.x = -0.7; tail.add(t);
+  const collarM = o.collar === 'bow' ? M('#f48fb1') : o.collar === 'bell' ? M('#c2183f') : blk;
+  const col = rb(0.6, 0.13, 0.5, collarM, 0.05); col.position.set(0, 0.97, 0.5); body.add(col);
+  if (o.collar === 'spikes') {
+    for (let i = -2; i <= 2; i++) { const s = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.1, 6), silver); s.position.set(i * 0.11, 0.97, 0.78); s.rotation.x = Math.PI / 2; body.add(s); }
+    const c1 = rb(0.03, 0.14, 0.02, silver, 0.005), c2 = rb(0.09, 0.03, 0.02, silver, 0.005); c1.position.set(0, 0.84, 0.77); c2.position.set(0, 0.86, 0.77); body.add(c1, c2);
+  } else if (o.collar === 'bow') {
+    const bm = M('#ff6fa3');
+    for (const sd of [-1, 1]) { const w = rb(0.18, 0.16, 0.06, bm, 0.04); w.position.set(sd * 0.11, 0.98, 0.78); w.rotation.z = sd * 0.3; body.add(w); }
+    const k = rb(0.08, 0.08, 0.08, bm, 0.03); k.position.set(0, 0.98, 0.79); body.add(k);
+  } else {
+    const b = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 10), M('#f2c94c', { metalness: 0.7, roughness: 0.3 })); b.position.set(0, 0.86, 0.77); body.add(b);
+  }
+  return { root, body, legs, arms: [], head, tail, faceCtx: face.ctx, faceTex: face.tex, height: 1.9 * def.scale };
+}
+
+// ---------- world ----------
+const circles = [], rects = [], pickables = [], inters = [];
+const placeLabels = [];
+function addRect(x0, x1, z0, z1) { rects.push({ x0, x1, z0, z1 }); }
+function resolve(p, r) {
+  for (const c of circles) { const dx = p.x - c.x, dz = p.z - c.z, d = Math.hypot(dx, dz), m = c.r + r; if (d < m && d > 1e-5) { p.x = c.x + dx / d * m; p.z = c.z + dz / d * m; } }
+  for (const b of rects) {
+    const cx = clamp(p.x, b.x0, b.x1), cz = clamp(p.z, b.z0, b.z1), dx = p.x - cx, dz = p.z - cz, d = Math.hypot(dx, dz);
+    if (d < r) {
+      if (d > 1e-5) { p.x = cx + dx / d * r; p.z = cz + dz / d * r; }
+      else { const l = p.x - b.x0, rr = b.x1 - p.x, t = p.z - b.z0, bb = b.z1 - p.z, mn = Math.min(l, rr, t, bb);
+        if (mn === l) p.x = b.x0 - r; else if (mn === rr) p.x = b.x1 + r; else if (mn === t) p.z = b.z0 - r; else p.z = b.z1 + r; }
+    }
+  }
+  const d = Math.hypot(p.x, p.z); if (d > R_WALK) { p.x *= R_WALK / d; p.z *= R_WALK / d; }
+}
+function blocked(x, z, m) {
+  if (Math.hypot(x, z) > 18.5) return true;
+  for (const c of circles) if (Math.hypot(x - c.x, z - c.z) < c.r + m) return true;
+  for (const b of rects) if (x > b.x0 - m && x < b.x1 + m && z > b.z0 - m && z < b.z1 + m) return true;
+  return false;
+}
+function addInter(o) { inters.push(o); if (o.group) { o.group.traverse(m => m.userData.interId = o.id); pickables.push(o.group); } return o; }
+const tagInter = (g, id) => g.traverse(m => m.userData.interId = id);
+
+function buildWorld() {
+  const grass = new THREE.Mesh(new THREE.CylinderGeometry(19.5, 19.5, 1, 72), M('#78b86e', { roughness: 1 }));
+  grass.position.y = -0.5; grass.receiveShadow = true; grass.userData.ground = true; scene.add(grass);
+  const beach = new THREE.Mesh(new THREE.CylinderGeometry(21.8, 22.4, 1, 72), M('#f5d6c6', { roughness: 1 }));
+  beach.position.y = -0.56; beach.receiveShadow = true; beach.userData.ground = true; scene.add(beach);
+  const sea = new THREE.Mesh(new THREE.CircleGeometry(120, 48), M('#e0477f', { roughness: 0.35, metalness: 0.1 }));
+  sea.rotation.x = -Math.PI / 2; sea.position.y = -0.4; scene.add(sea);
+  pickables.push(grass, beach);
+
+  // house
+  const house = new THREE.Group(); house.position.set(0, 0, -11);
+  const walls = rb(7, 3.6, 5, M('#2b1b24'), 0.1); walls.position.y = 1.8; house.add(walls);
+  const base = rb(7.3, 0.4, 5.3, M('#1a1016'), 0.05); base.position.y = 0.2; house.add(base);
+  const roof = new THREE.Mesh(new THREE.ConeGeometry(5.6, 2.8, 4), M('#e2457c')); roof.position.y = 5.0; roof.rotation.y = Math.PI / 4; roof.scale.z = 0.8; roof.castShadow = true; house.add(roof);
+  const door = rb(1.3, 2.1, 0.2, M('#f2a9c2'), 0.06); door.position.set(0, 1.05, 2.52); house.add(door);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.08), M('#f2c94c', { metalness: 0.7 })); knob.position.set(0.4, 1.05, 2.65); house.add(knob);
+  const heart = new THREE.Mesh(new THREE.ShapeGeometry((() => { const s = new THREE.Shape(); s.moveTo(0, -0.3); s.bezierCurveTo(-0.5, 0, -0.2, 0.35, 0, 0.15); s.bezierCurveTo(0.2, 0.35, 0.5, 0, 0, -0.3); return s; })()), M('#ff6fa3', { emissive: '#ff3d7f', emissiveIntensity: 0.5 }));
+  heart.position.set(0, 2.6, 2.52); house.add(heart);
+  for (const x of [-2.3, 2.3]) {
+    const w = rb(1.2, 1.0, 0.12, M('#ffd98a', { emissive: '#ffb347', emissiveIntensity: 0.6 }), 0.04); w.position.set(x, 2.0, 2.52); house.add(w);
+    const f1 = rb(1.3, 0.08, 0.16, M('#141114'), 0.02); f1.position.set(x, 2.0, 2.56); house.add(f1);
+    const f2 = rb(0.08, 1.1, 0.16, M('#141114'), 0.02); f2.position.set(x, 2.0, 2.56); house.add(f2);
+  }
+  const chim = rb(0.7, 1.6, 0.7, M('#1a1016'), 0.05); chim.position.set(2, 5.0, -1); house.add(chim);
+  const steps = rb(2, 0.2, 0.8, M('#c9b3bd'), 0.04); steps.position.set(0, 0.1, 2.9); house.add(steps);
+  scene.add(house); addRect(-3.65, 3.65, -13.65, -8.35);
+  addInter({ id: 'house', group: house, pos: { x: 0, z: -11 }, approach: { x: 0, z: -7.3 }, info: () => ({ icon: '🛏', text: 'Поспать' }), act: a => doSleep(a) });
+  placeLabels.push({ text: '🏠 Дом', p: new THREE.Vector3(0, 6.8, -11) });
+
+  // wardrobe
+  const wd = new THREE.Group(); wd.position.set(-6.2, 0, -8.8);
+  const wb = rb(1.8, 2.8, 1.0, M('#161116'), 0.08); wb.position.y = 1.4; wd.add(wb);
+  const wt = rb(2.0, 0.22, 1.1, M('#e2457c'), 0.05); wt.position.y = 2.88; wd.add(wt);
+  const mir = rb(0.6, 1.5, 0.04, M('#d9e7f2', { metalness: 0.6, roughness: 0.1 }), 0.02); mir.position.set(-0.42, 1.6, 0.51); wd.add(mir);
+  const seam = new THREE.Mesh(new THREE.BoxGeometry(0.03, 2.5, 0.02), M('#000')); seam.position.set(0, 1.4, 0.51); wd.add(seam);
+  for (const x of [-0.12, 0.12]) { const h = rb(0.06, 0.3, 0.06, M('#ff6fa3'), 0.02); h.position.set(x, 1.5, 0.54); wd.add(h); }
+  scene.add(wd); addRect(-7.15, -5.25, -9.35, -8.25);
+  addInter({ id: 'wardrobe', group: wd, pos: { x: -6.2, z: -8.8 }, approach: { x: -6.2, z: -7.4 }, info: () => ({ icon: '👗', text: 'Гардероб' }), act: () => openDress() });
+  placeLabels.push({ text: '👗 Шкаф', p: new THREE.Vector3(-6.2, 3.6, -8.8) });
+
+  // shop stall
+  const shop = new THREE.Group(); shop.position.set(-11, 0, 1);
+  const ctr = rb(1.3, 1.1, 3.6, M('#3a2530'), 0.06); ctr.position.y = 0.55; shop.add(ctr);
+  const ctop = rb(1.5, 0.12, 3.8, M('#f2a9c2'), 0.04); ctop.position.y = 1.16; shop.add(ctop);
+  for (const [x, z] of [[-0.6, -1.8], [-0.6, 1.8], [0.6, -1.8], [0.6, 1.8]]) { const p = rb(0.14, 2.7, 0.14, M('#141114'), 0.03); p.position.set(x, 1.35, z); shop.add(p); }
+  for (let i = 0; i < 6; i++) { const s = rb(1.9, 0.12, 0.66, M(i % 2 ? '#fff3f7' : '#ff6fa3'), 0.03); s.position.set(0.15, 2.75, -1.65 + i * 0.66); s.rotation.z = -0.25; shop.add(s); }
+  const goods = [['#e8283f', -1.1], ['#f08a24', -0.3], ['#f07a1a', 0.5], ['#9ad7ea', 1.3]];
+  for (const [c, z] of goods) { const cr = rb(0.5, 0.3, 0.6, M('#8a5a3c'), 0.03); cr.position.set(0.2, 1.37, z); shop.add(cr); for (let k = 0; k < 3; k++) { const b = rb(0.16, 0.16, 0.16, M(c), 0.06); b.position.set(0.1 + (k % 2) * 0.18, 1.58, z - 0.15 + k * 0.15); shop.add(b); } }
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.5), new THREE.MeshStandardMaterial({ map: canvasTex('shopsign', 256, 80, x => { x.fillStyle = '#1b0a12'; x.beginPath(); x.roundRect(0, 0, 256, 80, 20); x.fill(); x.fillStyle = '#ff8ab5'; x.font = '900 44px Nunito, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('ЛАВКА', 128, 42); }) }));
+  sign.position.set(0.7, 3.25, 0); sign.rotation.y = Math.PI / 2; shop.add(sign);
+  scene.add(shop); addRect(-11.85, -10.25, -0.95, 2.95);
+  addInter({ id: 'shop', human: true, group: shop, pos: { x: -11, z: 1 }, approach: { x: -9.4, z: 1 }, info: () => ({ icon: '🏪', text: 'Лавка' }), act: () => openShop() });
+
+  // picnic table
+  const tb = new THREE.Group(); tb.position.set(-4, 0, 5);
+  const top = rb(2.4, 0.14, 1.3, M('#f2a9c2'), 0.04); top.position.y = 0.95; tb.add(top);
+  for (const [x, z] of [[-1, -0.5], [-1, 0.5], [1, -0.5], [1, 0.5]]) { const l = rb(0.12, 0.9, 0.12, M('#141114'), 0.02); l.position.set(x, 0.45, z); tb.add(l); }
+  for (const z of [-0.95, 0.95]) { const b = rb(2.4, 0.12, 0.4, M('#2b1b24'), 0.03); b.position.set(0, 0.5, z); tb.add(b); }
+  const cake = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.2, 16), M('#fff3f7')); cake.position.set(0.4, 1.12, 0); tb.add(cake);
+  const ck = new THREE.Mesh(new THREE.SphereGeometry(0.06), M('#e8283f')); ck.position.set(0.4, 1.26, 0); tb.add(ck);
+  const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.07, 0.18, 12), M('#141114')); cup.position.set(-0.5, 1.1, 0.2); tb.add(cup);
+  scene.add(tb); addRect(-5.25, -2.75, 3.85, 6.15);
+  addInter({ id: 'table', group: tb, pos: { x: -4, z: 5 }, approach: { x: -4, z: 6.9 }, info: () => ({ icon: '🍽', text: 'Перекусить' }), act: () => openFeed() });
+  placeLabels.push({ text: '🍽 Столик', p: new THREE.Vector3(-4, 2.1, 5) });
+
+  // garden
+  const gx = [5.4, 7.0, 8.6], gz = [-0.8, 0.8];
+  let i = 0;
+  for (const z of gz) for (const x of gx) {
+    const idx = i++;
+    const g = new THREE.Group(); g.position.set(x, 0, z);
+    const soil = rb(1.32, 0.2, 1.32, M('#5a3a34', { roughness: 1 }), 0.05); soil.position.y = 0.1; g.add(soil);
+    const cropG = new THREE.Group(); cropG.position.y = 0.18; g.add(cropG);
+    const spark = new THREE.Mesh(new THREE.OctahedronGeometry(0.16), M('#ffe37a', { emissive: '#ffcf3a', emissiveIntensity: 0.9 })); spark.position.y = 1.4; spark.visible = false; g.add(spark);
+    scene.add(g);
+    const lbl = document.createElement('div'); lbl.className = 'plotlbl hidden'; labelsEl.appendChild(lbl);
+    plots.push({ g, soil, cropG, spark, lbl, key: '' });
+    addInter({ id: 'plot' + idx, human: true, group: g, pos: { x, z }, approach: { x, z: z < 0 ? z - 1.15 : z + 1.15 }, info: () => plotInfo(idx), act: a => plotAct(idx, a) });
+  }
+  placeLabels.push({ text: '🌱 Огород', p: new THREE.Vector3(7, 1.9, -2.6) });
+  const fm = M('#1d1318');
+  for (let x = 4.3; x <= 9.8; x += 0.9) { const p = rb(0.14, 0.8, 0.14, fm, 0.03); p.position.set(x, 0.4, -3.1); scene.add(p); }
+  for (let z = -3.1; z <= 2.5; z += 0.9) { const p = rb(0.14, 0.8, 0.14, fm, 0.03); p.position.set(10.1, 0.4, z); scene.add(p); }
+  const r1 = rb(5.6, 0.1, 0.08, fm, 0.02); r1.position.set(7.05, 0.6, -3.1); scene.add(r1);
+  const r2 = rb(0.08, 0.1, 5.7, fm, 0.02); r2.position.set(10.1, 0.6, -0.3); scene.add(r2);
+  addRect(4.2, 10.2, -3.2, -3.0); addRect(10.0, 10.2, -3.2, 2.6);
+
+  // pond
+  const pond = new THREE.Group(); pond.position.set(6, 0, 10);
+  const water = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.6, 0.1, 40), M('#9ad7ea', { roughness: 0.12, metalness: 0.1 })); water.position.y = 0.03; water.receiveShadow = true; pond.add(water);
+  for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2; const s = rb(rnd(0.5, 0.8), rnd(0.25, 0.4), rnd(0.5, 0.8), M(k % 3 ? '#8f8590' : '#6f6570'), 0.12); s.position.set(Math.cos(a) * 2.8, 0.12, Math.sin(a) * 2.8); s.rotation.y = a; pond.add(s); }
+  for (const [x, z] of [[-0.8, 0.5], [0.9, -0.6], [0.2, 1.2]]) { const lp = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.03, 12), M('#5aa05a')); lp.position.set(x, 0.1, z); pond.add(lp); const fl = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), M('#ffc8dc')); fl.position.set(x + 0.1, 0.18, z); pond.add(fl); }
+  scene.add(pond); circles.push({ x: 6, z: 10, r: 2.75 });
+  addInter({ id: 'pond', group: pond, pos: { x: 6, z: 10 }, approach: { x: 6, z: 6.75 }, info: () => ({ icon: '🎣', text: 'Рыбачить' }), act: a => doFish(a) });
+  placeLabels.push({ text: '🎣 Пруд', p: new THREE.Vector3(6, 1.4, 10) });
+
+  // trees
+  const tpos = [[-14, -5], [14, -7], [-13, 11], [13.5, 7.5], [-2, 15.5], [-9, -14], [10, -13], [-16, 4]];
+  tpos.forEach(([x, z], k) => {
+    const g = new THREE.Group(); g.position.set(x, 0, z);
+    const trunk = rb(0.55, 2.2, 0.55, M('#3a2428'), 0.08); trunk.position.y = 1.1; g.add(trunk);
+    const crown = new THREE.Group(); crown.position.y = 2.2; g.add(crown);
+    const f1 = rb(2.6, 1.4, 2.6, M('#f7a9c6'), 0.25); f1.position.y = 0.6; crown.add(f1);
+    const f2 = rb(2.0, 1.1, 2.0, M('#f08bb3'), 0.25); f2.position.set(0.3, 1.5, -0.2); crown.add(f2);
+    const f3 = rb(1.3, 0.9, 1.3, M('#ffc8dc'), 0.2); f3.position.set(-0.4, 1.4, 0.5); crown.add(f3);
+    const fruits = new THREE.Group(); crown.add(fruits);
+    for (const [fx, fz] of [[0.9, 0.9], [-0.9, 0.8], [0.8, -0.9], [-0.7, -0.9]]) { const c = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), M('#c2183f')); c.position.set(fx, -0.15, fz); fruits.add(c); }
+    g.rotation.y = k * 1.3;
+    scene.add(g); circles.push({ x, z, r: 0.6 });
+    const d = Math.hypot(x, z);
+    trees.push({ g, crown, fruits, shake: 0 });
+    addInter({ id: 'tree' + k, group: g, pos: { x, z }, approach: { x: x - x / d * 1.5, z: z - z / d * 1.5 }, info: () => treeReady(k) ? { icon: '🍒', text: 'Потрясти' } : { icon: '🌸', text: 'Зреет…' }, act: a => shakeTree(k, a) });
+  });
+
+  // lanterns
+  for (const [x, z] of [[-2.2, -6.6], [2.2, -6.6], [3.9, 3.3], [-7.6, -1.4], [2.5, 7.5]]) {
+    const p = rb(0.14, 1.8, 0.14, M('#141114'), 0.03); p.position.set(x, 0.9, z); scene.add(p);
+    const l = rb(0.4, 0.45, 0.4, M('#ffb3cf', { emissive: '#ff6fa3', emissiveIntensity: 0.9 }), 0.08); l.position.set(x, 1.95, z); scene.add(l);
+    const cap = rb(0.5, 0.1, 0.5, M('#141114'), 0.03); cap.position.set(x, 2.22, z); scene.add(cap);
+    circles.push({ x, z, r: 0.25 });
+  }
+
+  // path stones
+  const stoneM = M('#ecd6c9', { roughness: 1 });
+  const path = (x0, z0, x1, z1) => { const n = Math.floor(Math.hypot(x1 - x0, z1 - z0) / 1.1); for (let k = 0; k <= n; k++) { const s = rb(0.85, 0.06, 0.65, stoneM, 0.03); s.position.set(x0 + (x1 - x0) * k / n + rnd(-0.1, 0.1), 0.02, z0 + (z1 - z0) * k / n); s.rotation.y = rnd(-0.3, 0.3); s.castShadow = false; scene.add(s); } };
+  path(0, -7.6, 0, 0); path(0.9, 0, 4.2, 0); path(-0.9, 0.3, -8.6, 1); path(0.4, 1, 5.2, 6.6); path(-0.6, 1, -3.4, 6.6);
+
+  // rocks & bushes
+  const rr = mulberry(42);
+  for (let k = 0; k < 14; k++) {
+    let x, z, tries = 0; do { const a = rr() * Math.PI * 2, d = 6 + rr() * 12; x = Math.cos(a) * d; z = Math.sin(a) * d; } while (blocked(x, z, 1.2) && ++tries < 30);
+    if (tries >= 30) continue;
+    if (k % 2) { const b = rb(rnd(0.9, 1.4), rnd(0.7, 1.0), rnd(0.9, 1.3), M(k % 4 === 1 ? '#5f9e5a' : '#f08bb3'), 0.25); b.position.set(x, 0.4, z); scene.add(b); circles.push({ x, z, r: 0.6 }); }
+    else { const r = rb(rnd(0.5, 0.9), rnd(0.3, 0.5), rnd(0.5, 0.8), M('#8c8290'), 0.12); r.position.set(x, 0.15, z); r.rotation.y = rr() * 3; scene.add(r); }
+  }
+  // flowers + grass tufts (instanced, no shadows)
+  const tuftGeo = new THREE.BoxGeometry(0.12, 0.25, 0.12);
+  const tufts = new THREE.InstancedMesh(tuftGeo, M('#5e9e57'), 260);
+  const flGeo = new THREE.BoxGeometry(0.16, 0.16, 0.16);
+  const flowers = new THREE.InstancedMesh(flGeo, M('#ffffff'), 140);
+  const stemGeo = new THREE.BoxGeometry(0.04, 0.3, 0.04);
+  const stems = new THREE.InstancedMesh(stemGeo, M('#4f8a48'), 140);
+  const mtx = new THREE.Matrix4(), col = new THREE.Color(), fcols = ['#ff6fa3', '#ffffff', '#1d1318', '#ffc8dc', '#c2183f'];
+  let tc = 0, fc = 0;
+  for (let k = 0; k < 900 && (tc < 260 || fc < 140); k++) {
+    const a = rr() * Math.PI * 2, d = Math.sqrt(rr()) * 18.6, x = Math.cos(a) * d, z = Math.sin(a) * d;
+    if (blocked(x, z, 0.4) || (x > 4.4 && x < 9.7 && z > -1.6 && z < 1.6)) continue;
+    if (Math.abs(x) < 0.7 && z > -7.8 && z < 0.5) continue;
+    if (k % 3 === 0 && fc < 140) {
+      mtx.makeTranslation(x, 0.15, z); stems.setMatrixAt(fc, mtx);
+      mtx.makeTranslation(x, 0.32, z); flowers.setMatrixAt(fc, mtx); flowers.setColorAt(fc, col.set(fcols[fc % fcols.length])); fc++;
+    } else if (tc < 260) { mtx.makeRotationY(rr() * 3).setPosition(x, 0.1, z); tufts.setMatrixAt(tc++, mtx); }
+  }
+  tufts.count = tc; flowers.count = fc; stems.count = fc;
+  scene.add(tufts, flowers, stems);
+  for (const pl of placeLabels) { const el = document.createElement('div'); el.className = 'place'; el.textContent = pl.text; labelsEl.appendChild(el); pl.el = el; }
+
+  // petals
+  const petM = new THREE.MeshBasicMaterial({ color: '#ffc8dc', side: THREE.DoubleSide });
+  for (let k = 0; k < 40; k++) { const p = new THREE.Mesh(new THREE.PlaneGeometry(0.14, 0.1), petM); p.position.set(rnd(-18, 18), rnd(0, 8), rnd(-18, 18)); p.userData.v = rnd(0.3, 0.7); scene.add(p); petals.push(p); }
+
+  // markers
+  ring = new THREE.Mesh(new THREE.RingGeometry(0.6, 0.8, 32), new THREE.MeshBasicMaterial({ color: '#ff6fa3', transparent: true, opacity: 0.85 }));
+  ring.rotation.x = -Math.PI / 2; ring.position.y = 0.04; scene.add(ring);
+  marker = new THREE.Mesh(new THREE.RingGeometry(0.25, 0.4, 24), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0 }));
+  marker.rotation.x = -Math.PI / 2; marker.position.y = 0.05; scene.add(marker);
+}
+
+// ---------- crops ----------
+const plots = [], trees = [], petals = [];
+let ring, marker;
+function plotStage(p) { if (!p) return -1; const pr = plotProgress(p); return pr >= 1 ? 3 : pr >= 0.6 ? 2 : pr >= 0.25 ? 1 : 0; }
+function plotProgress(p) { return (Date.now() - p.t) / (CROPS[p.c].grow * 1000); }
+function makeCrop(c, stage) {
+  const g = new THREE.Group(), green = M('#4f9a4a'), lg = M('#7cc66a');
+  if (stage === 0) { for (const [x, z] of [[-0.3, -0.2], [0.25, 0.1], [-0.05, 0.3]]) { const b = rb(0.14, 0.06, 0.14, M('#3b2522'), 0.02); b.position.set(x, 0.03, z); g.add(b); } return g; }
+  if (stage === 1) { const st = rb(0.05, 0.22, 0.05, lg, 0.01); st.position.y = 0.11; g.add(st); for (const s of [-1, 1]) { const l = rb(0.22, 0.04, 0.12, lg, 0.015); l.position.set(s * 0.1, 0.22, 0); l.rotation.z = s * 0.4; g.add(l); } return g; }
+  const big = stage === 3;
+  if (c === 'strawberry') { const b = rb(0.75, 0.3, 0.75, green, 0.1); b.position.y = 0.15; g.add(b); if (big) for (const [x, z] of [[0.35, 0.2], [-0.3, 0.3], [0.1, -0.38], [-0.38, -0.15], [0.3, -0.2]]) { const s = rb(0.14, 0.16, 0.14, M('#e8283f'), 0.05); s.position.set(x, 0.22, z); g.add(s); } }
+  else if (c === 'carrot') { for (let k = 0; k < 5; k++) { const l = rb(0.07, 0.45, 0.12, lg, 0.02); l.position.set(Math.cos(k * 1.26) * 0.08, 0.3, Math.sin(k * 1.26) * 0.08); l.rotation.set(Math.sin(k * 1.26) * 0.4, 0, -Math.cos(k * 1.26) * 0.4); g.add(l); } if (big) { const o = rb(0.26, 0.18, 0.26, M('#f08a24'), 0.06); o.position.y = 0.06; g.add(o); } }
+  else if (c === 'tomato') { const st = rb(0.05, 1.0, 0.05, M('#7a5a3a'), 0.01); st.position.y = 0.5; g.add(st); const b = rb(0.55, 0.6, 0.55, green, 0.15); b.position.y = 0.5; g.add(b); if (big) for (const [x, y, z] of [[0.28, 0.45, 0.1], [-0.25, 0.6, 0.15], [0.05, 0.35, -0.3], [0.1, 0.7, 0.28]]) { const t = new THREE.Mesh(new THREE.SphereGeometry(0.12, 10, 8), M('#e8283f')); t.position.set(x, y, z); g.add(t); } }
+  else if (c === 'pumpkin') { const l = rb(0.85, 0.1, 0.85, green, 0.04); l.position.y = 0.05; g.add(l); const pm = new THREE.Mesh(new THREE.SphereGeometry(big ? 0.34 : 0.16, 14, 10), M(big ? '#f07a1a' : '#8fbf5a')); pm.scale.y = 0.75; pm.position.y = big ? 0.3 : 0.16; pm.castShadow = true; g.add(pm); const s = rb(0.06, 0.15, 0.06, M('#5a3a20'), 0.01); s.position.y = big ? 0.6 : 0.3; g.add(s); }
+  if (!big) g.scale.setScalar(0.72);
+  g.traverse(m => { if (m.isMesh) m.castShadow = true; });
+  return g;
+}
+function refreshPlot(i, force) {
+  const P = plots[i], p = state.plots[i], st = plotStage(p);
+  const key = p ? p.c + st + (p.w ? 'w' : '') : 'empty';
+  if (key === P.key && !force) return;
+  P.key = key;
+  P.cropG.children.slice().forEach(c => { P.cropG.remove(c); disposeTree(c); });
+  if (p) { P.cropG.add(makeCrop(p.c, st)); tagInter(P.cropG, 'plot' + i); }
+  P.soil.material.color.set(p && p.w ? '#3b2522' : '#5a3a34');
+  P.spark.visible = st === 3;
+}
+function plotInfo(i) {
+  const p = state.plots[i], st = plotStage(p);
+  if (!p) return { icon: '🌱', text: 'Посадить' };
+  if (st === 3) return { icon: '🧺', text: 'Собрать' };
+  if (!p.w) return { icon: '💧', text: 'Полить' };
+  return { icon: CROPS[p.c].emoji, text: `Растёт ${Math.floor(plotProgress(p) * 100)}%` };
+}
+function plotAct(i, a) {
+  const p = state.plots[i], st = plotStage(p);
+  if (!p) return openSeedPicker(i, a);
+  if (st === 3) {
+    a.busy = { type: 'work', t: 0, dur: 1.1, done: () => {
+      const c = CROPS[p.c], n = randInt(c.yield);
+      state.inv[p.c] = (state.inv[p.c] || 0) + n; state.plots[i] = null; refreshPlot(i);
+      floatAgent(a, c.emoji + '×' + n); toast(`Урожай: ${c.emoji} ${c.name} ×${n}`); addStat(a, 'fun', 6); hapticOk(); save();
+    } };
+  } else if (!p.w) {
+    a.busy = { type: 'water', t: 0, dur: 1.0, done: () => { p.w = true; p.t -= CROPS[p.c].grow * 1000 * 0.3; refreshPlot(i); floatAgent(a, '💧'); haptic(); save(); } };
+  } else toast(`${CROPS[p.c].emoji} ${CROPS[p.c].name} растёт… ${Math.floor(plotProgress(p) * 100)}%`);
+}
+function plant(i, a, c) {
+  if (!(state.seeds[c] > 0) || state.plots[i]) return;
+  closeSheet();
+  a.busy = { type: 'work', t: 0, dur: 1.2, done: () => { state.seeds[c]--; state.plots[i] = { c, t: Date.now(), w: false }; refreshPlot(i); floatAgent(a, '🌱'); haptic(); save(); } };
+}
+const treeReady = k => !(state.trees[k] > Date.now());
+function shakeTree(k, a) {
+  trees[k].shake = 1; haptic();
+  if (!treeReady(k)) return toast(`Вишня ещё зреет 🌸 (${Math.ceil((state.trees[k] - Date.now()) / 1000)} с)`);
+  a.busy = { type: 'happy', t: 0, dur: 0.8, done: () => {} };
+  state.trees[k] = Date.now() + 90000; state.inv.cherry = (state.inv.cherry || 0) + 2;
+  floatAgent(a, '🍒×2'); toast('Вишня в рюкзаке! 🍒×2'); save();
+}
+
+// ---------- agents ----------
+let agents = null, selected = null, state = null;
+class Agent {
+  constructor(id) {
+    this.id = id; this.def = CHARS[id]; const s = state.chars[id];
+    this.stats = s.stats; this.outfit = s.outfit;
+    this.root = new THREE.Group(); this.root.position.set(s.x, 0, s.z); scene.add(this.root);
+    this.heading = Math.random() * 6; this.want = null; this.target = null; this.onArrive = null; this.busy = null;
+    this.phase = 0; this.swing = 0; this.mood = ''; this.idleT = 2 + Math.random() * 4; this.stuck = 0; this.petCd = 0;
+    this.radius = (this.def.kind === 'cat' ? 0.55 : 0.48) * this.def.scale;
+    this.bubble = document.createElement('div'); this.bubble.className = 'bubble hidden'; labelsEl.appendChild(this.bubble);
+    this.build();
+  }
+  build() {
+    if (this.model) { this.root.remove(this.model.root); disposeTree(this.model.root); }
+    const o = this.def.outfits[this.outfit];
+    this.model = this.def.kind === 'cat' ? makeCat(this.def, o) : makeHuman(this.def, o);
+    this.root.add(this.model.root);
+    this.model.root.traverse(m => m.userData.agentId = this.id);
+    const md = this.mood || 'happy'; this.mood = ''; this.setMood(md);
+  }
+  setMood(m) {
+    if (m === this.mood) return; this.mood = m;
+    this.model.faceCtx.clearRect(0, 0, 256, 256); drawFace(this.model.faceCtx, this.def.face, m); this.model.faceTex.needsUpdate = true;
+    drawPortrait(this.id);
+  }
+  goTo(pt, cb, look) { this.target = { x: pt.x, z: pt.z }; this.onArrive = cb || null; this.look = look || null; this.stuck = 0; }
+  arrive() {
+    this.target = null; const cb = this.onArrive; this.onArrive = null;
+    if (this.look) { const p = this.root.position; this.want = Math.atan2(this.look.x - p.x, this.look.z - p.z); this.look = null; }
+    cb?.(this);
+  }
+  think(dt) {
+    this.idleT -= dt; if (this.idleT > 0) return;
+    this.idleT = 3 + Math.random() * 5;
+    const follow = (this.id === 'kid' || this.id === 'cat') && Math.random() < 0.6;
+    const c = follow ? selected.root.position : this.root.position;
+    const a = Math.random() * Math.PI * 2, d = follow ? rnd(1.5, 3) : rnd(1.5, 5);
+    const x = c.x + Math.cos(a) * d, z = c.z + Math.sin(a) * d;
+    if (!blocked(x, z, this.radius + 0.2)) this.goTo({ x, z });
+  }
+  update(dt, time) {
+    const b = this.busy;
+    if (b) { b.t += dt; if (b.t >= b.dur) { this.busy = null; b.done?.(); } }
+    let move = null;
+    if (!this.busy) {
+      if (joyVec && selected === this) { move = joyVec; this.target = null; this.onArrive = null; this.want = null; }
+      else if (this.target) {
+        const p = this.root.position, dx = this.target.x - p.x, dz = this.target.z - p.z, d = Math.hypot(dx, dz);
+        if (d < 0.14) this.arrive(); else move = { x: dx / d, z: dz / d, mag: Math.min(1, 0.35 + d) };
+      } else if (selected !== this) this.think(dt);
+    }
+    let spdF = 0;
+    if (move) {
+      const sp = this.def.speed * (this.stats.energy < 15 ? 0.6 : 1) * move.mag, p = this.root.position;
+      const px = p.x, pz = p.z;
+      p.x += move.x * sp * dt; p.z += move.z * sp * dt; resolve(p, this.radius);
+      const moved = Math.hypot(p.x - px, p.z - pz);
+      if (this.target) {
+        if (moved < sp * dt * 0.25) this.stuck += dt; else this.stuck = Math.max(0, this.stuck - dt);
+        if (this.stuck > 0.6) {
+          const d = Math.hypot(this.target.x - p.x, this.target.z - p.z);
+          if (d < 2.2 && this.onArrive) this.arrive();
+          else { this.target = null; this.onArrive = null; if (selected === this) toast('Не пройти 🙈'); }
+        }
+      }
+      this.want = Math.atan2(move.x, move.z); spdF = move.mag;
+    }
+    if (this.want !== null) {
+      let d = this.want - this.heading; d = Math.atan2(Math.sin(d), Math.cos(d));
+      this.heading += d * (1 - Math.exp(-12 * dt)); this.root.rotation.y = this.heading;
+    }
+    this.animate(dt, !!move, spdF, time);
+    // needs
+    const st = this.stats, sleeping = b?.type === 'sleep';
+    st.hunger = clamp(st.hunger - dt * (sleeping ? 0.08 : 0.22), 0, 100);
+    st.fun = clamp(st.fun - dt * 0.16, 0, 100);
+    st.energy = clamp(st.energy + dt * (sleeping ? 14 : move ? -0.2 : -0.08), 0, 100);
+    this.setMood(sleeping ? 'sleep' : Math.min(st.hunger, st.fun, st.energy) < 22 ? 'sad' : 'happy');
+  }
+  animate(dt, moving, spd, time) {
+    const m = this.model, b = this.busy, cat = this.def.kind === 'cat';
+    this.swing += ((moving ? 0.8 : 0) - this.swing) * (1 - Math.exp(-10 * dt));
+    if (moving) this.phase += dt * (cat ? 15 : 10) * Math.max(0.5, spd);
+    const s = Math.sin(this.phase) * this.swing;
+    m.body.position.y = Math.abs(Math.sin(this.phase)) * 0.1 * this.swing;
+    if (cat) {
+      m.legs[0].rotation.x = m.legs[3].rotation.x = s; m.legs[1].rotation.x = m.legs[2].rotation.x = -s;
+      m.tail.rotation.z = Math.sin(time * 4) * 0.5; m.head.rotation.x = 0; m.head.rotation.z = Math.sin(time * 1.5) * 0.05;
+      if (b?.type === 'eat') m.head.rotation.x = 0.4 + Math.sin(b.t * 14) * 0.15;
+      else if (b?.type === 'happy' || b?.type === 'hug') { m.body.position.y = Math.abs(Math.sin(b.t * 8)) * 0.35; m.tail.rotation.z = Math.sin(b.t * 20) * 0.8; }
+      else if (b?.type === 'fish') m.legs[0].rotation.x = -1.2 + Math.sin(b.t * 10) * 0.5;
+      return;
+    }
+    const kid = this.def.face === 'kid';
+    let aL = -s * 0.9, aR = kid ? -0.75 + s * 0.2 : s * 0.9, zL = 0, zR = 0, lean = 0, headX = 0;
+    if (b) switch (b.type) {
+      case 'eat': if (kid) aL = -2.1 + Math.sin(b.t * 12) * 0.25; else aR = -2.1 + Math.sin(b.t * 12) * 0.25; headX = 0.1; break;
+      case 'work': lean = 0.45; aL = -1.1 + Math.sin(b.t * 10) * 0.4; aR = -1.1 - Math.sin(b.t * 10) * 0.4; break;
+      case 'water': lean = 0.25; aR = -1.3 + Math.sin(b.t * 6) * 0.15; aL = -0.4; break;
+      case 'fish': aL = -1.3; aR = -1.3 + Math.sin(b.t * 3) * 0.1; break;
+      case 'happy': m.body.position.y = Math.abs(Math.sin(b.t * 8)) * 0.4; zL = -2.5; zR = 2.5; aL = aR = 0; break;
+      case 'hug': aL = aR = -1.4; zL = 0.5; zR = -0.5; break;
+    }
+    m.legs[0].rotation.x = s; m.legs[1].rotation.x = -s;
+    m.arms[0].rotation.set(aL, 0, zL); m.arms[1].rotation.set(aR, 0, zR);
+    m.upper.rotation.x = lean; m.head.rotation.x = headX; m.head.rotation.z = Math.sin(time * 1.3 + this.heading) * 0.03;
+  }
+}
+function addStat(a, k, v) { a.stats[k] = clamp(a.stats[k] + v, 0, 100); }
+function nearestOther(a, max) {
+  let best = null, bd = max;
+  for (const o of Object.values(agents)) { if (o === a || !o.root.visible) continue; const d = o.root.position.distanceTo(a.root.position); if (d < bd) { bd = d; best = o; } }
+  return best;
+}
+
+// ---------- actions ----------
+function busyCheck(a) { if (a.busy) { toast(a.busy.type === 'sleep' ? `${nm(a.id)} спит 💤` : `${nm(a.id)} ${fem(a, 'занята', 'занят')}… ⏳`); return true; } return false; }
+function feed(a, id) {
+  if (busyCheck(a)) return;
+  const info = itemInfo(id); if (!(state.inv[id] > 0)) return;
+  if (a.def.eats && !a.def.eats.includes(id)) { toast(`${nm(a.id)} воротит нос 😾`); floatAgent(a, '😾'); return; }
+  if (a.stats.hunger > 95 && !info.food.energy) { toast(`${nm(a.id)} уже ${fem(a, 'сыта', 'сыт')} 😌`); return; }
+  state.inv[id]--; closeSheet(); floatAgent(a, info.emoji); haptic();
+  a.busy = { type: 'eat', t: 0, dur: 1.6, done: () => {
+    const liked = a.def.likes.includes(id), f = info.food;
+    addStat(a, 'hunger', f.hunger || 0); addStat(a, 'fun', (f.fun || 0) * (liked ? 1.8 : 1)); addStat(a, 'energy', f.energy || 0);
+    floatAgent(a, liked ? '😍' : '😋'); if (liked) toast(`${nm(a.id)} обожает ${info.emoji}!`); hapticOk(); save();
+  } };
+}
+function pet(a) {
+  if (busyCheck(a)) return;
+  const now = performance.now(); if (a.petCd > now) return; a.petCd = now + 1500;
+  const o = nearestOther(a, 2.6);
+  const kind = x => x.def.kind === 'cat' ? 'happy' : 'hug';
+  if (o && !o.busy) {
+    const pa = a.root.position, pb = o.root.position;
+    a.want = Math.atan2(pb.x - pa.x, pb.z - pa.z); o.want = Math.atan2(pa.x - pb.x, pa.z - pb.z); o.target = null;
+    a.busy = { type: kind(a), t: 0, dur: 1.4 }; o.busy = { type: kind(o), t: 0, dur: 1.4 };
+    addStat(a, 'fun', 14); addStat(o, 'fun', 14); floatAgent(a, '💕'); floatAgent(o, o.def.kind === 'cat' ? 'мур~ 💕' : '💕');
+    toast(`${nm(a.id)} + ${nm(o.id)} = 💞`);
+  } else {
+    a.busy = { type: 'happy', t: 0, dur: 1.0 }; addStat(a, 'fun', 10); floatAgent(a, a.def.kind === 'cat' ? 'мур~ 💕' : '💕');
+  }
+  haptic('medium');
+}
+function doSleep(a) {
+  a.root.visible = false; floatAt(new THREE.Vector3(0, 4.5, -8.5), '💤');
+  a.busy = { type: 'sleep', t: 0, dur: 7, done: () => { a.root.visible = true; a.root.position.set(rnd(-0.5, 0.5), 0, -7.3); floatAgent(a, '☀️'); save(); } };
+  toast(`${nm(a.id)} ${fem(a, 'легла', 'лёг')} поспать 💤`);
+}
+function doFish(a) {
+  a.busy = { type: 'fish', t: 0, dur: 2.5, done: () => {
+    addStat(a, 'fun', 5);
+    if (Math.random() < 0.6) { state.inv.fish = (state.inv.fish || 0) + 1; floatAgent(a, '🐟'); toast('Рыбка в рюкзаке! 🐟'); hapticOk(); save(); }
+    else { floatAgent(a, '💦'); toast('Сорвалась… 💦'); }
+  } };
+  floatAgent(a, '🎣');
+}
+function callFamily() {
+  const p = selected.root.position; let k = 0;
+  for (const a of Object.values(agents)) if (a !== selected && !a.busy) { const ang = k++ * 2.1 + 0.6; a.goTo({ x: p.x + Math.cos(ang) * 1.8, z: p.z + Math.sin(ang) * 1.8 }); a.idleT = 8; floatAgent(a, '❗'); }
+  toast('Семья, ко мне! 🖤'); haptic();
+}
+function commandInter(it) {
+  const a = selected; if (busyCheck(a)) return;
+  if (it.human && a.def.kind === 'cat') { toast(`${nm(a.id)} так не умеет 🐾 Выбери кого-то другого`); return; }
+  const p = a.root.position;
+  if (Math.hypot(p.x - it.approach.x, p.z - it.approach.z) < 0.2) { a.want = Math.atan2(it.pos.x - p.x, it.pos.z - p.z); it.act(a); }
+  else a.goTo(it.approach, ag => it.act(ag), it.pos);
+  showMarker(it.approach);
+}
+function select(a) {
+  if (selected === a) return;
+  selected = a; state.selected = a.id; a.target = null; updateCards(); haptic(); floatAgent(a, '✨');
+}
+
+// ---------- UI ----------
+const labelsEl = document.getElementById('labels');
+const $ = id => document.getElementById(id);
+let toastT = 0;
+function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 2200); }
+const floats = [];
+function floatAt(pos, text) { const el = document.createElement('div'); el.className = 'float'; el.textContent = text; labelsEl.appendChild(el); floats.push({ el, pos: pos.clone(), t: 0 }); }
+function floatAgent(a, text) { const p = a.root.position.clone(); p.y += a.model.height + 0.3; floatAt(p, text); }
+const _v = new THREE.Vector3();
+function place(el, p, dy = 0) {
+  _v.copy(p).project(camera);
+  if (_v.z > 1 || Math.abs(_v.x) > 1.2 || Math.abs(_v.y) > 1.2) { el.style.visibility = 'hidden'; return; }
+  el.style.visibility = 'visible';
+  el.style.transform = `translate(${(_v.x * 0.5 + 0.5) * innerWidth}px,${(-_v.y * 0.5 + 0.5) * innerHeight + dy}px) translate(-50%,-100%)`;
+}
+function bumpCoins(d) { state.coins += d; $('coinVal').textContent = state.coins; const c = $('coins'); c.classList.add('pop'); setTimeout(() => c.classList.remove('pop'), 150); }
+
+const cards = {}, portraits = {};
+function buildCards() {
+  for (const id of ORDER) {
+    const c = document.createElement('div'); c.className = 'card';
+    const cv = document.createElement('canvas'); cv.width = cv.height = 96;
+    c.innerHTML = '';
+    c.appendChild(cv);
+    const n = document.createElement('div'); n.className = 'nm'; c.appendChild(n);
+    const bars = document.createElement('div'); bars.className = 'bars';
+    bars.innerHTML = '<div class="bar b-h"><i></i></div><div class="bar b-f"><i></i></div><div class="bar b-e"><i></i></div>';
+    c.appendChild(bars);
+    c.onclick = () => select(agents[id]);
+    $('chars').appendChild(c);
+    cards[id] = { c, n, i: bars.querySelectorAll('i') }; portraits[id] = cv;
+  }
+}
+function updateCards() {
+  for (const id of ORDER) {
+    const k = cards[id], st = agents[id].stats;
+    k.c.classList.toggle('sel', selected.id === id); k.n.textContent = nm(id);
+    k.i[0].style.width = st.hunger + '%'; k.i[1].style.width = st.fun + '%'; k.i[2].style.width = st.energy + '%';
+  }
+}
+function drawPortrait(id) {
+  const cv = portraits[id]; if (!cv || !agents?.[id]) return;
+  const a = agents[id], x = cv.getContext('2d'), o = a.def.outfits[a.outfit];
+  x.clearRect(0, 0, 96, 96);
+  x.fillStyle = '#3a1028'; x.beginPath(); x.arc(48, 48, 47, 0, Math.PI * 2); x.fill();
+  x.save(); x.beginPath(); x.arc(48, 48, 47, 0, Math.PI * 2); x.clip();
+  if (a.def.kind === 'cat') {
+    x.fillStyle = '#eaa2a8'; x.beginPath(); x.moveTo(16, 40); x.lineTo(24, 6); x.lineTo(42, 30); x.moveTo(80, 40); x.lineTo(72, 6); x.lineTo(54, 30); x.fill();
+    x.beginPath(); x.roundRect(12, 24, 72, 62, 14); x.fill();
+    x.save(); x.translate(12, 24); x.scale(72 / 256, 62 / 256); drawFace(x, 'cat', a.mood); x.restore();
+  } else {
+    const hair = o.hair;
+    x.fillStyle = hair; if (a.def.hair === 'long') x.fillRect(10, 20, 76, 76);
+    x.fillStyle = SKIN; x.beginPath(); x.roundRect(16, 22, 64, 62, 12); x.fill();
+    x.save(); x.translate(16, 24); x.scale(64 / 256, 60 / 256); drawFace(x, a.def.face, a.mood); x.restore();
+    x.fillStyle = hair; x.beginPath(); x.roundRect(12, 10, 72, 24, 10); x.fill();
+    if (a.def.hair === 'messy') for (let k = 0; k < 6; k++) { x.beginPath(); x.arc(18 + k * 12, 14 + (k % 2) * 6, 9, 0, Math.PI * 2); x.fill(); }
+    if (a.def.hair === 'bun') { x.beginPath(); x.arc(48, 8, 12, 0, Math.PI * 2); x.fill(); x.fillStyle = '#f59ab8'; x.fillRect(22, 30, 14, 4); }
+  }
+  x.restore();
+}
+
+// sheet
+let sheetOpts = null, sheetTab = null;
+function openSheet(opts) {
+  sheetOpts = opts; sheetTab = opts.tabs?.[0]?.key || null;
+  $('sheetTitle').textContent = opts.title; renderSheet(); $('sheet').classList.remove('hidden');
+  try { tg?.BackButton?.show(); } catch (e) {}
+}
+function renderSheet() {
+  const tabs = $('sheetTabs'); tabs.innerHTML = '';
+  for (const t of sheetOpts.tabs || []) { const b = document.createElement('button'); b.textContent = t.label; b.className = t.key === sheetTab ? 'on' : ''; b.onclick = () => { sheetTab = t.key; renderSheet(); }; tabs.appendChild(b); }
+  const body = $('sheetBody'); body.innerHTML = ''; sheetOpts.render(body, sheetTab);
+}
+function closeSheet() { $('sheet').classList.add('hidden'); sheetOpts = null; try { tg?.BackButton?.hide(); } catch (e) {} }
+function tile(body, { e, n, s, sel, dis, click }) {
+  const b = document.createElement('button'); b.className = 'tile' + (sel ? ' sel' : ''); b.disabled = !!dis;
+  b.innerHTML = `<div class="e">${e}</div><div>${n}</div>${s ? `<div class="s">${s}</div>` : ''}`;
+  b.onclick = () => { haptic(); click?.(); }; body.appendChild(b); return b;
+}
+function sec(body, t) { const d = document.createElement('div'); d.className = 'sec'; d.textContent = t; body.appendChild(d); }
+function empty(body, t) { const d = document.createElement('div'); d.className = 'empty'; d.innerHTML = t; body.appendChild(d); }
+const foodSub = f => [f.hunger ? `🍗+${f.hunger}` : '', f.fun ? `💗+${f.fun}` : '', f.energy ? `⚡+${f.energy}` : ''].filter(Boolean).join(' ');
+
+function openFeed() {
+  const a = selected;
+  openSheet({ title: `Покормить: ${nm(a.id)}`, render: body => {
+    const ids = [...Object.keys(FOODS), ...Object.keys(CROPS)].filter(id => state.inv[id] > 0);
+    if (!ids.length) return empty(body, 'Еды нет 😿<br>Собери урожай 🌱, потряси вишню 🍒, порыбачь 🎣 или купи в лавке 🏪');
+    for (const id of ids) { const f = itemInfo(id); tile(body, { e: f.emoji, n: `${f.name} ×${state.inv[id]}`, s: (a.def.likes.includes(id) ? '❤️ ' : '') + foodSub(f.food), click: () => feed(a, id) }); }
+  } });
+}
+function openDress() {
+  const a = selected;
+  openSheet({ title: `Гардероб: ${nm(a.id)}`, render: body => {
+    for (const [k, o] of Object.entries(a.def.outfits)) tile(body, { e: o.emoji, n: o.label, sel: a.outfit === k, click: () => {
+      if (a.outfit === k) return; a.outfit = k; a.build();
+      for (let i = 0; i < 5; i++) { const p = a.root.position.clone(); p.x += rnd(-0.6, 0.6); p.y += rnd(0.5, a.model.height); floatAt(p, '✨'); }
+      hapticOk(); addStat(a, 'fun', 5); save(); renderSheet();
+    } });
+    sec(body, 'Имя');
+    const row = document.createElement('div'); row.className = 'row';
+    const inp = document.createElement('input'); inp.maxLength = 14; inp.value = nm(a.id); inp.placeholder = CHARS[a.id].name;
+    const ok = document.createElement('button'); ok.className = 'btn'; ok.textContent = 'Сохранить';
+    ok.onclick = () => { state.chars[a.id].name = inp.value.trim() || ''; updateCards(); save(); toast('Имя сохранено 💕'); inp.blur(); };
+    row.append(inp, ok); body.appendChild(row);
+  } });
+}
+function openBag() {
+  openSheet({ title: '🎒 Рюкзак', render: body => {
+    sec(body, 'Семена');
+    const seeds = Object.keys(CROPS).filter(c => state.seeds[c] > 0);
+    if (!seeds.length) empty(body, 'Семян нет — загляни в лавку 🏪');
+    for (const c of seeds) tile(body, { e: CROPS[c].emoji, n: `${CROPS[c].name} ×${state.seeds[c]}`, s: `растёт ${CROPS[c].grow} с` });
+    sec(body, 'Еда и урожай');
+    const ids = [...Object.keys(FOODS), ...Object.keys(CROPS)].filter(id => state.inv[id] > 0);
+    if (!ids.length) empty(body, 'Пусто');
+    for (const id of ids) { const f = itemInfo(id); tile(body, { e: f.emoji, n: `${f.name} ×${state.inv[id]}`, s: foodSub(f.food), click: () => feed(selected, id) }); }
+    empty(body, 'Тапни по еде, чтобы покормить выбранного.<br>Магазин — розовая палатка слева 🏪');
+  } });
+}
+function openShop() {
+  openSheet({ title: '🏪 Лавка', tabs: [{ key: 'seeds', label: '🌱 Семена' }, { key: 'food', label: '🍰 Еда' }, { key: 'sell', label: '🪙 Продать' }], render: (body, tab) => {
+    if (tab === 'seeds') for (const [k, c] of Object.entries(CROPS)) tile(body, { e: c.emoji, n: c.name, s: `🪙${c.seed} · ${c.grow} с · есть ${state.seeds[k] || 0}`, dis: state.coins < c.seed, click: () => { if (state.coins < c.seed) return; bumpCoins(-c.seed); state.seeds[k] = (state.seeds[k] || 0) + 1; save(); renderSheet(); } });
+    if (tab === 'food') for (const [k, f] of Object.entries(FOODS)) { if (!f.price) continue; tile(body, { e: f.emoji, n: f.name, s: `🪙${f.price} · ${foodSub(f.food)}`, dis: state.coins < f.price, click: () => { if (state.coins < f.price) return; bumpCoins(-f.price); state.inv[k] = (state.inv[k] || 0) + 1; save(); renderSheet(); } }); }
+    if (tab === 'sell') {
+      const ids = [...Object.keys(CROPS), ...Object.keys(FOODS)].filter(id => state.inv[id] > 0 && itemInfo(id).sell);
+      if (!ids.length) return empty(body, 'Нечего продать. Вырасти урожай 🌱');
+      for (const id of ids) { const f = itemInfo(id); tile(body, { e: f.emoji, n: `${f.name} ×${state.inv[id]}`, s: `продать за 🪙${f.sell}`, click: () => { state.inv[id]--; bumpCoins(f.sell); hapticOk(); save(); renderSheet(); } }); }
+    }
+  } });
+}
+function openSeedPicker(i, a) {
+  openSheet({ title: 'Что посадим? 🌱', render: body => {
+    const seeds = Object.keys(CROPS).filter(c => state.seeds[c] > 0);
+    if (!seeds.length) return empty(body, 'Семян нет 😿 Купи их в лавке 🏪');
+    for (const c of seeds) tile(body, { e: CROPS[c].emoji, n: `${CROPS[c].name} ×${state.seeds[c]}`, s: `растёт ${CROPS[c].grow} с · 🪙${CROPS[c].sell}`, click: () => plant(i, a, c) });
+  } });
+}
+$('sheetClose').onclick = closeSheet;
+$('sheet').addEventListener('pointerdown', e => { if (e.target.id === 'sheet') closeSheet(); });
+try { tg?.BackButton?.onClick(closeSheet); } catch (e) {}
+document.querySelectorAll('.tool').forEach(b => b.onclick = () => {
+  haptic(); const act = b.dataset.act;
+  if (act === 'feed') openFeed(); else if (act === 'dress') openDress(); else if (act === 'pet') pet(selected); else if (act === 'bag') openBag();
+});
+let nearInter = null;
+$('actBtn').onclick = () => { haptic('medium'); if (nearInter) commandInter(nearInter); else callFamily(); };
+
+// joystick
+let joyVec = null, joyId = null, joyC = null;
+const joy = $('joy'), knob = $('knob');
+joy.addEventListener('pointerdown', e => { joyId = e.pointerId; joy.setPointerCapture(e.pointerId); const r = joy.getBoundingClientRect(); joyC = { x: r.left + r.width / 2, y: r.top + r.height / 2 }; joyMove(e); });
+joy.addEventListener('pointermove', e => { if (e.pointerId === joyId) joyMove(e); });
+const joyEnd = e => { if (e.pointerId !== joyId) return; joyId = null; joyVec = null; knob.style.transform = ''; };
+joy.addEventListener('pointerup', joyEnd); joy.addEventListener('pointercancel', joyEnd);
+function joyMove(e) {
+  let dx = e.clientX - joyC.x, dy = e.clientY - joyC.y; const d = Math.hypot(dx, dy), max = 46;
+  if (d > max) { dx *= max / d; dy *= max / d; }
+  knob.style.transform = `translate(${dx}px,${dy}px)`;
+  const m = Math.min(1, d / max);
+  joyVec = m < 0.15 ? null : { x: dx / (Math.hypot(dx, dy) || 1), z: dy / (Math.hypot(dx, dy) || 1), mag: m };
+}
+
+// canvas taps + pinch zoom
+let zoom = 1;
+const cvs = renderer.domElement, ptrs = new Map(); let tapStart = null, pinchD = 0;
+cvs.addEventListener('pointerdown', e => {
+  ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (ptrs.size === 1) tapStart = { x: e.clientX, y: e.clientY, t: performance.now() };
+  else { tapStart = null; const [a, b] = [...ptrs.values()]; pinchD = Math.hypot(a.x - b.x, a.y - b.y); }
+});
+cvs.addEventListener('pointermove', e => {
+  if (!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (ptrs.size === 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y); if (pinchD > 0) zoom = clamp(zoom * pinchD / d, 0.55, 1.7); pinchD = d; }
+});
+const ptrEnd = e => {
+  if (!ptrs.has(e.pointerId)) return; ptrs.delete(e.pointerId);
+  if (tapStart && Math.hypot(e.clientX - tapStart.x, e.clientY - tapStart.y) < 14 && performance.now() - tapStart.t < 600) handleTap(e.clientX, e.clientY);
+  tapStart = null;
+};
+cvs.addEventListener('pointerup', ptrEnd); cvs.addEventListener('pointercancel', e => { ptrs.delete(e.pointerId); tapStart = null; });
+cvs.addEventListener('wheel', e => { zoom = clamp(zoom * (1 + e.deltaY * 0.001), 0.55, 1.7); }, { passive: true });
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function handleTap(cx, cy) {
+  ndc.set(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera);
+  const hits = ray.intersectObjects([...pickables, ...Object.values(agents).map(a => a.root)], true);
+  for (const h of hits) {
+    const u = h.object.userData;
+    if (u.agentId) { const a = agents[u.agentId]; if (!a.root.visible) continue; if (a === selected) pet(a); else select(a); return; }
+    if (u.interId) { const it = inters.find(i => i.id === u.interId); if (it) { commandInter(it); return; } }
+    if (u.ground) {
+      if (busyCheck(selected)) return;
+      const p = { x: h.point.x, z: h.point.z }; const d = Math.hypot(p.x, p.z); if (d > R_WALK) { p.x *= R_WALK / d; p.z *= R_WALK / d; }
+      selected.goTo(p); showMarker(p); return;
+    }
+  }
+}
+let markerT = 0;
+function showMarker(p) { marker.position.set(p.x, 0.05, p.z); markerT = 1; }
+
+// ---------- loop ----------
+const camT = new THREE.Vector3();
+function resize() {
+  const w = innerWidth, h = innerHeight; renderer.setSize(w, h); camera.aspect = w / h;
+  camera.fov = w / h < 1 ? 52 : 40; camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); try { tg?.onEvent?.('viewportChanged', resize); } catch (e) {}
+
+let last = performance.now(), acc = 0, accSave = 0, accBonus = 0;
+function loop(now) {
+  requestAnimationFrame(loop);
+  const dt = Math.min(0.05, (now - last) / 1000); last = now; const time = now / 1000;
+  for (const a of Object.values(agents)) a.update(dt, time);
+  // camera
+  const sp = selected.root.position;
+  camT.lerp(_v.set(sp.x, 0, sp.z), 1 - Math.exp(-5 * dt));
+  const zf = zoom * (innerWidth / innerHeight < 1 ? 1.1 : 1);
+  camera.position.set(camT.x, 13 * zf, camT.z + 13.5 * zf); camera.lookAt(camT.x, 0.8, camT.z);
+  sun.position.set(camT.x + 8, 18, camT.z + 6); sun.target.position.copy(camT);
+  // ring + marker
+  ring.visible = selected.root.visible; ring.position.x = sp.x; ring.position.z = sp.z;
+  ring.scale.setScalar(selected.def.scale * (1 + Math.sin(time * 4) * 0.06) * (selected.def.kind === 'cat' ? 1.2 : 1));
+  if (markerT > 0) { markerT -= dt * 1.6; marker.material.opacity = Math.max(0, markerT); marker.scale.setScalar(1 + (1 - markerT) * 0.8); }
+  // world anim
+  for (const t of trees) { if (t.shake > 0) { t.shake -= dt * 1.5; t.crown.rotation.z = Math.sin(time * 40) * 0.06 * Math.max(0, t.shake); } }
+  for (const p of plots) if (p.spark.visible) { p.spark.rotation.y += dt * 2; p.spark.position.y = 1.3 + Math.sin(time * 3) * 0.12; }
+  for (const p of petals) { p.position.y -= dt * p.userData.v; p.position.x += Math.sin(time + p.userData.v * 10) * dt * 0.4; p.rotation.x += dt * 2; p.rotation.z += dt; if (p.position.y < 0.02) { p.position.set(camT.x + rnd(-14, 14), rnd(6, 9), camT.z + rnd(-14, 12)); } }
+  // labels
+  for (const a of Object.values(agents)) {
+    const st = a.stats, need = !a.root.visible ? '' : st.hunger < 30 ? '🍗' : st.energy < 25 ? '💤' : st.fun < 30 ? '💔' : '';
+    a.bubble.classList.toggle('hidden', !need);
+    if (need) { if (a.bubble.textContent !== need) a.bubble.textContent = need; _v.copy(a.root.position); _v.y += a.model.height + 0.25; place(a.bubble, _v.clone()); }
+  }
+  for (const pl of placeLabels) place(pl.el, pl.p);
+  for (let i = floats.length - 1; i >= 0; i--) {
+    const f = floats[i]; f.t += dt; f.pos.y += dt * 1.1; place(f.el, f.pos); f.el.style.opacity = Math.max(0, 1 - f.t / 1.4);
+    if (f.t > 1.4) { f.el.remove(); floats.splice(i, 1); }
+  }
+  plots.forEach((P, i) => {
+    const p = state.plots[i];
+    if (!p) { P.lbl.classList.add('hidden'); return; }
+    P.lbl.classList.remove('hidden');
+    const st = plotStage(p);
+    P.lbl.textContent = st === 3 ? `${CROPS[p.c].emoji} готово!` : `${CROPS[p.c].emoji} ${Math.floor(plotProgress(p) * 100)}%${p.w ? '' : ' 💧'}`;
+    place(P.lbl, _v.set(P.g.position.x, 1.1, P.g.position.z).clone());
+  });
+  // periodic
+  acc += dt;
+  if (acc > 0.25) {
+    acc = 0; updateCards(); plots.forEach((_, i) => refreshPlot(i));
+    for (const [k, t] of trees.entries()) t.fruits.visible = treeReady(k);
+    nearInter = null;
+    if (!selected.busy) { let bd = 1.7; const p = selected.root.position; for (const it of inters) { const d = Math.hypot(p.x - it.approach.x, p.z - it.approach.z); if (d < bd) { bd = d; nearInter = it; } } }
+    const info = nearInter ? nearInter.info() : { icon: '📣', text: 'Позвать' };
+    $('actIcon').textContent = info.icon; $('actLabel').textContent = info.text; $('actBtn').classList.toggle('near', !!nearInter);
+  }
+  accSave += dt; if (accSave > 5) { accSave = 0; save(); }
+  accBonus += dt;
+  if (accBonus > 45) {
+    accBonus = 0; const avg = Object.values(agents).reduce((s, a) => s + a.stats.hunger + a.stats.fun + a.stats.energy, 0) / 12;
+    if (avg > 60) { const b = avg > 80 ? 5 : 3; bumpCoins(b); toast(`Семья счастлива! +${b}🪙 💞`); }
+  }
+  renderer.render(scene, camera);
+}
+
+// ---------- boot ----------
+const loaded = await loadState();
+state = loaded.s;
+buildWorld();
+buildCards();
+agents = {}; for (const id of ORDER) agents[id] = new Agent(id);
+selected = agents[state.selected] || agents.mom;
+ORDER.forEach(drawPortrait);
+plots.forEach((_, i) => refreshPlot(i, true));
+$('coinVal').textContent = state.coins;
+camT.set(selected.root.position.x, 0, selected.root.position.z);
+resize(); updateCards();
+if (loaded.fresh) { $('intro').classList.remove('hidden'); $('introGo').onclick = () => { $('intro').classList.add('hidden'); haptic('medium'); save(); }; }
+document.addEventListener('visibilitychange', () => { if (document.hidden) { lastCloud = 0; save(); } });
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
