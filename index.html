@@ -175,7 +175,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#7d0f37;font-family:'N
 body.desktop #joy{display:none}
 body.desktop #tools{bottom:calc(env(safe-area-inset-bottom) + 44px);left:50%}
 body.desktop #actBtn{bottom:calc(env(safe-area-inset-bottom) + 40px)}
-body.desktop #callBtn{bottom:calc(env(safe-area-inset-bottom) + 48px)}
+body.desktop #callBtn{right:45px;bottom:calc(env(safe-area-inset-bottom) + 150px)}
 body.desktop #nearHint{bottom:calc(env(safe-area-inset-bottom) + 104px)}
 body.desktop #editbar{bottom:calc(env(safe-area-inset-bottom) + 120px);max-width:520px;left:50%;right:auto;transform:translateX(-50%);width:90vw}
 .card.remote{opacity:.9}
@@ -191,6 +191,23 @@ body.desktop #editbar{bottom:calc(env(safe-area-inset-bottom) + 120px);max-width
 .lvl .pb i{display:block;height:100%;background:linear-gradient(90deg,#ff8ab5,#d93a73)}
 .topic{grid-column:1/-1;text-align:left;flex-direction:row;justify-content:space-between;padding:10px 12px}
 .topic .s{white-space:nowrap}
+.mg-cv{width:100%;border-radius:14px;display:block;margin-bottom:4px;background:#000}
+.rh{position:relative;height:230px;background:linear-gradient(#140a1e,#2a0f3a);border-radius:14px;overflow:hidden;display:grid;grid-template-columns:repeat(3,1fr);margin:6px 0}
+.rh .lane{border-right:1px solid rgba(255,255,255,.08)}
+.rh .hit{position:absolute;left:0;right:0;top:186px;height:5px;background:#ff6fa3;box-shadow:0 0 12px #ff6fa3}
+.rh .note{position:absolute;width:33.33%;text-align:center;font-size:30px;transform:translateY(-50%);pointer-events:none}
+.mg-row button{font-size:26px!important}
+.pl-bar{display:none}
+.pl-ctl{display:flex;align-items:center;gap:8px}
+.pl-ctl button{background:#3a1428;border:2px solid var(--line);color:#fff;border-radius:12px;padding:7px 10px;font:900 13px 'Nunito',sans-serif;white-space:nowrap}
+.pl-ctl input{flex:1;min-width:60px;accent-color:#ff6fa3}
+.pl-ctl span{font-size:12px;font-weight:800;white-space:nowrap;opacity:.85}
+#player.mini .pl-ctl{display:none}
+#ytHolder{width:100%;height:100%}
+.flash{position:absolute;inset:0;background:#fff;animation:flashA .6s forwards;pointer-events:none}
+@keyframes flashA{to{opacity:0}}
+.album{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.album img{width:100%;border-radius:10px;border:2px solid #4a1b33}
 </style>
 </head>
 <body>
@@ -229,7 +246,7 @@ body.desktop #editbar{bottom:calc(env(safe-area-inset-bottom) + 120px);max-width
   <button id="decorBtn" class="hidden">🛠 Обустроить</button>
   <div id="editbar" class="hidden"><div id="editHint"></div><div class="eb" id="ebIdle"><button data-e="add">➕ Добавить</button><button data-e="exit" class="main">✓ Готово</button></div><div class="eb hidden" id="ebItem"><button data-e="rot">⟳</button><button data-e="del">🗑</button><button data-e="x">✕</button><button data-e="ok" class="main">✓ Поставить</button></div></div>
   <div id="mg" class="hidden"><div class="mg-card"><div class="mg-title" id="mgTitle"></div><div id="mgBody"></div></div></div>
-  <div id="player" class="hidden"><div class="pl-top"><b id="plTitle"></b><span><button id="plMini" title="Смотреть на экране">🗗</button> <button id="plClose">✕</button></span></div><div class="pl-screen" id="plScreen"><canvas id="plCanvas" width="640" height="360"></canvas><div id="plSub"></div></div><div class="pl-bar"><i id="plProg"></i></div><div class="pl-note" id="plNote"></div></div>
+  <div id="player" class="hidden"><div class="pl-top"><b id="plTitle"></b><span><button id="plMini" title="Смотреть на экране">🗗</button> <button id="plClose">✕</button></span></div><div class="pl-screen" id="plScreen"><canvas id="plCanvas" width="640" height="360"></canvas><div id="plSub"></div></div><div class="pl-bar"><i id="plProg"></i></div><div class="pl-ctl"><button id="plBack">⏪ 10</button><button id="plPlay">⏸</button><button id="plFwd">10 ⏩</button><input type="range" id="plSeek" min="0" max="100" step="0.1" value="0"><span id="plTime">0:00</span></div><div class="pl-note" id="plNote"></div></div>
   <div id="intro" class="hidden"><div class="box">
     <h1>🖤 Goth Family Island</h1>
     Остров, парк и целый город для Полины, Дениса, малышки и котика.<br><br>
@@ -523,21 +540,23 @@ function merge3(b, l, r, path = '') {
   }
   return l === undefined ? r : l;
 }
-function replaceObj(t, src) { for (const k of Object.keys(t)) if (!(k in src)) delete t[k]; Object.assign(t, src); }
+function deepAssign(t, src) {
+  for (const k of Object.keys(src)) { const v = src[k]; if (v && typeof v === 'object' && !Array.isArray(v) && t[k] && typeof t[k] === 'object' && !Array.isArray(t[k])) deepAssign(t[k], v); else t[k] = v; }
+}
 function applyShared(m) {
-  for (const k of Object.keys(m)) {
-    if (k === 'chars') continue;
-    if (state[k] && m[k] && typeof state[k] === 'object' && typeof m[k] === 'object' && !Array.isArray(state[k]) && !Array.isArray(m[k])) replaceObj(state[k], m[k]); else state[k] = m[k];
-  }
+  const { chars, ...rest } = m;
+  deepAssign(state, rest);
   merge(defaultState(), state);
   for (const id of ORDER) {
-    const c = m.chars?.[id]; if (!c) continue; const sc = state.chars[id], hair = sc.hairColor;
+    const c = chars?.[id]; if (!c) continue; const sc = state.chars[id], look = [sc.outfit, sc.hairColor, sc.hairStyle].join('|');
     Object.assign(sc.stats, c.stats); for (const k of Object.keys(c)) if (k !== 'stats') sc[k] = c[k];
-    const a = agents[id]; if (a.outfit !== sc.outfit || hair !== sc.hairColor) { a.outfit = sc.outfit; a.build(); }
+    const a = agents[id];
+    if (Date.now() < (a.outfitLock || 0)) { sc.outfit = a.outfit; continue; }
+    if (a.outfit !== sc.outfit || look !== [sc.outfit, sc.hairColor, sc.hairStyle].join('|')) { a.outfit = sc.outfit; a.build(); }
   }
   $('coinVal').textContent = state.coins; if (!edit) refreshHome(); refreshBday(); updateCards(); updateMenuDot();
 }
-const famUrl = () => `${SYNC_BASE}/families/${fam.id}.json`;
+const famUrl = () => `${SYNC_BASE}/families/${fam.id}/state.json`;
 async function famGet() {
   if (!fam.noEtag) {
     try { const res = await fetch(famUrl(), { headers: { 'X-Firebase-ETag': 'true' }, cache: 'no-store' }); if (!res.ok) throw new Error('HTTP ' + res.status); return { data: await res.json(), etag: res.headers.get('ETag') }; }
@@ -550,71 +569,85 @@ async function famPut(body, etag) {
   const headers = { 'Content-Type': 'application/json' }; if (etag) headers['if-match'] = etag;
   return fetch(famUrl(), { method: 'PUT', headers, body: JSON.stringify(body) });
 }
-const presence = () => ({ name: me.char ? nm(me.char) : (me.name || 'Игрок'), char: me.char || '', seen: Date.now(), loc: L?.id || 'island' });
 async function syncNow() {
   if (!fam.id || !SYNC_BASE || fam.busy || !agents) return;
   fam.busy = true;
   try {
     saveLocal();
     for (let attempt = 0; attempt < 3; attempt++) {
-      const { data, etag } = await famGet();
-      const local = sharedOf(state), rs = data?.state;
+      const { data: rs, etag } = await famGet();
+      const local = sharedOf(state);
       const merged = rs ? merge3(fam.base || rs, local, rs) : local;
-      const players = { ...(data?.players || {}), [me.id]: presence() };
-      const put = await famPut({ v: 3, state: merged, players }, etag);
+      const put = await famPut(merged, etag);
       if (put.status === 412) continue;
       if (!put.ok) throw new Error('HTTP ' + put.status);
       fam.base = merged; try { localStorage.setItem('gf_base_' + fam.id, JSON.stringify(merged)); } catch (e) {}
       if (!jeq(merged, local)) applyShared(merged);
-      fam.players = players; fam.ok = true; fam.err = ''; fam.last = Date.now();
+      fam.ok = true; fam.err = ''; fam.last = Date.now();
       break;
     }
   } catch (e) { fam.ok = false; fam.err = String(e.message || e); }
   finally { fam.busy = false; updateCoop(); }
 }
-// live presence: each player streams only their own character
-const live = { busy: false, data: {}, fx: { n: 0, t: '' }, seenFx: {} };
+// live presence: each player streams their own character; the "host" (smallest id online) also streams the kid and the cat
+const live = { busy: false, data: {}, fx: { n: 0, t: '' }, seenFx: {}, host: true };
+const packA = a => ({ l: L.id, x: +a.root.position.x.toFixed(2), z: +a.root.position.z.toFixed(2), h: +a.heading.toFixed(2), b: a.busy && a.busy.type !== 'hidden' ? a.busy.type : '', o: a.outfit, hc: state.chars[a.id].hairColor || '', hs: state.chars[a.id].hairStyle || '' });
+const onlineOthers = () => Object.entries(live.data || {}).filter(([pid, d]) => pid !== me.id && d && Date.now() - d.t < 15000);
 async function liveTick() {
   if (!fam.id || !SYNC_BASE || live.busy || !agents || document.hidden) return;
   live.busy = true;
   try {
-    const a = me.char && agents[me.char];
-    if (a) await fetch(`${SYNC_BASE}/families/${fam.id}/live/${me.id}.json`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ c: me.char, l: L.id, x: +a.root.position.x.toFixed(2), z: +a.root.position.z.toFixed(2), h: +a.heading.toFixed(2), b: a.busy && a.busy.type !== 'hidden' ? a.busy.type : '', fx: live.fx, t: Date.now() }) });
+    live.host = onlineOthers().every(([pid]) => me.id < pid);
+    const body = { n: me.char ? nm(me.char) : (me.name || 'Игрок'), c: me.char || '', l: L.id, fx: live.fx, t: Date.now() };
+    if (me.char && agents[me.char]) Object.assign(body, packA(agents[me.char]));
+    if (live.host) body.k = { kid: packA(agents.kid), cat: packA(agents.cat) };
+    await fetch(`${SYNC_BASE}/families/${fam.id}/live/${me.id}.json`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const r = await fetch(`${SYNC_BASE}/families/${fam.id}/live.json`, { cache: 'no-store' });
     live.data = (await r.json()) || {};
-    applyLive();
+    applyLive(); updateCoop();
   } catch (e) {}
   finally { live.busy = false; }
 }
 function applyLive() {
-  const now = Date.now(), active = new Set();
-  for (const [pid, d] of Object.entries(live.data)) {
-    if (pid === me.id || !d || !CHARS[d.c] || d.c === me.char || now - d.t > 15000) continue;
-    const a = agents[d.c]; active.add(d.c);
-    if (!a.remote) { a.target = null; a.onArrive = null; }
+  const others = onlineOthers(), active = new Map();
+  for (const [pid, d] of others) if (CHARS[d.c] && d.c !== me.char && d.x !== undefined) active.set(d.c, { ...d, pid });
+  live.host = others.every(([pid]) => me.id < pid);
+  if (!live.host) { const h = others.filter(([pid]) => pid < me.id).sort((a, b) => (a[0] < b[0] ? -1 : 1))[0]; if (h && h[1].k) for (const pet of ['kid', 'cat']) if (h[1].k[pet]) active.set(pet, { ...h[1].k[pet], pet: true, pid: h[0] }); }
+  for (const [id, d] of active) {
+    const a = agents[id]; if (!a.remote) { a.target = null; a.onArrive = null; }
     a.remote = d;
-    if (d.fx && d.fx.n && live.seenFx[pid] !== d.fx.n) { if (live.seenFx[pid] !== undefined && d.l === L.id) floatAgent(a, d.fx.t); live.seenFx[pid] = d.fx.n; }
+    if (Date.now() > (a.outfitLock || 0)) {
+      const sc = state.chars[id], wantO = d.o && CHARS[id].outfits[d.o] ? d.o : a.outfit;
+      if (wantO !== a.outfit || (d.hc ?? '') !== (sc.hairColor || '') || (d.hs ?? '') !== (sc.hairStyle || '')) { a.outfit = wantO; sc.outfit = wantO; sc.hairColor = d.hc || ''; sc.hairStyle = d.hs || ''; a.build(); }
+    }
+    if (!d.pet && d.fx && d.fx.n && live.seenFx[d.pid] !== d.fx.n) { if (live.seenFx[d.pid] !== undefined && d.l === L.id) floatAgent(a, d.fx.t); live.seenFx[d.pid] = d.fx.n; }
   }
-  for (const id of ORDER) if (agents[id].remote && !active.has(id)) { agents[id].remote = null; agents[id].root.visible = true; if (agents[id].busy?.dur === Infinity) agents[id].busy = null; }
-  if (selected.remote) select(agents[me.char] || agents.kid, true);
+  for (const id of ORDER) if (agents[id].remote && !active.has(id)) {
+    const a = agents[id], wasHere = a.remote.l === L.id; a.remote = null; a.root.visible = true; if (a.busy?.dur === Infinity) a.busy = null;
+    if (!wasHere) { const p = selected.root.position; a.root.position.set(p.x + rnd(-1.5, 1.5), 0, p.z + rnd(0.5, 1.5)); bound(a.root.position, L); }
+  }
+  if (selected.remote && !selected.remote.pet) select(agents[me.char] || agents.kid, true);
 }
-setInterval(liveTick, 700);
+setInterval(liveTick, 650);
 function scheduleSync(ms = 1500) { if (!fam.id) return; clearTimeout(fam.timer); fam.timer = setTimeout(syncNow, ms); }
-function partner() { return Object.entries(fam.players || {}).filter(([id]) => id !== me.id).map(([, p]) => p).sort((a, b) => b.seen - a.seen)[0]; }
+function partner() {
+  const all = Object.entries(live.data || {}).filter(([pid, d]) => pid !== me.id && d).map(([, d]) => d).sort((a, b) => b.t - a.t);
+  const o = all[0]; return o && { name: o.n || (o.c ? nm(o.c) : 'Игрок'), seen: o.t, char: o.c, loc: o.l };
+}
 function updateCoop() {
   const el = $('coop'); el.classList.toggle('on', !!fam.id);
   if (!fam.id) return;
-  const p = partner(), live = p && Date.now() - p.seen < 25000;
-  el.classList.toggle('live', !!live);
-  el.textContent = live ? `🟢 ${p.name} в игре` : fam.ok ? '👫 Общий остров' : '⚠️ Нет связи';
-  if (live && !fam.partnerSeen) { toast(`💞 ${p.name} на острове вместе с тобой!`); sfx('heart'); }
-  fam.partnerSeen = !!live;
+  const p = partner(), on = p && Date.now() - p.seen < 15000;
+  el.classList.toggle('live', !!on);
+  el.textContent = on ? `🟢 ${p.name} в игре${p.loc && p.loc !== L.id ? ' · ' + (LOCS[p.loc]?.icon || '') : ''}` : fam.ok ? '👫 Общий остров' : '⚠️ Нет связи';
+  if (on && !fam.partnerSeen) { toast(`💞 ${p.name} на острове вместе с тобой!`); sfx('heart'); }
+  fam.partnerSeen = !!on;
 }
 const newFamId = () => Array.from(crypto.getRandomValues(new Uint8Array(9)), b => 'abcdefghjkmnpqrstuvwxyz23456789'[b % 31]).join('');
 async function createFamily() {
   if (!SYNC_BASE) return toast('Совместная игра ещё не подключена к базе 🛠');
   fam.id = newFamId(); fam.base = null;
-  try { saveLocal(); const st = sharedOf(state); const r = await famPut({ v: 3, state: st, players: { [me.id]: presence() } }); if (!r.ok) throw new Error('HTTP ' + r.status); fam.base = st; localStorage.setItem('gf_family', fam.id); localStorage.setItem('gf_base_' + fam.id, JSON.stringify(st)); fam.ok = true; toast('Общий остров создан 💞 Отправь код второй половинке'); hapticOk(); }
+  try { saveLocal(); const st = sharedOf(state); const r = await famPut(st); if (!r.ok) throw new Error('HTTP ' + r.status); fam.base = st; localStorage.setItem('gf_family', fam.id); localStorage.setItem('gf_base_' + fam.id, JSON.stringify(st)); fam.ok = true; toast('Общий остров создан 💞 Отправь код второй половинке'); hapticOk(); liveTick(); }
   catch (e) { fam.id = ''; toast('Не получилось создать: ' + (e.message || e)); }
   updateCoop(); renderSheet();
 }
@@ -625,14 +658,14 @@ async function joinFamily(code) {
   const prev = fam.id; fam.id = code;
   try {
     const { data } = await famGet();
-    if (!data?.state) throw new Error('Остров с таким кодом не найден');
-    applyShared(data.state); fam.base = data.state;
-    localStorage.setItem('gf_family', code); localStorage.setItem('gf_base_' + code, JSON.stringify(data.state));
-    fam.players = data.players || {}; toast('Ты на общем острове! 💞'); hapticOk(); sfx('bday'); saveLocal(); syncNow();
+    if (!data || !data.chars) throw new Error('Остров с таким кодом не найден');
+    applyShared(data); fam.base = data;
+    localStorage.setItem('gf_family', code); localStorage.setItem('gf_base_' + code, JSON.stringify(data));
+    toast('Ты на общем острове! 💞'); hapticOk(); sfx('bday'); saveLocal(); syncNow(); liveTick();
   } catch (e) { fam.id = prev; toast(String(e.message || e)); }
   updateCoop(); renderSheet();
 }
-function leaveFamily() { localStorage.removeItem('gf_family'); fam.id = ''; fam.base = null; fam.players = {}; updateCoop(); renderSheet(); toast('Теперь остров только твой'); }
+function leaveFamily() { localStorage.removeItem('gf_family'); fam.id = ''; fam.base = null; live.data = {}; applyLive(); updateCoop(); renderSheet(); toast('Теперь остров только твой'); }
 let lastCloud = 0;
 function save() { saveLocal(); scheduleSync(); }
 function saveLocal() {
@@ -1621,10 +1654,10 @@ function rowHouse(x0, x1, zFront, dir, h, color, opts = {}) {
   return g;
 }
 function buildCity() {
-  newLoc('city', { name: 'Город', icon: '🏙', bound: { x0: -23.5, x1: 23.5, z0: -5.4, z1: 5.4 }, arrive: { x: 1, z: 2.2 }, zoom: 1.05, fog: [45, 100] });
+  newLoc('city', { name: 'Город', icon: '🏙', bound: { x0: -37.5, x1: 37.5, z0: -5.4, z1: 5.4 }, arrive: { x: 1, z: 2.2 }, zoom: 1.05, fog: [45, 100] });
   const cob = canvasTex('cobble', 128, 128, x => { x.fillStyle = '#8a7a86'; x.fillRect(0, 0, 128, 128); const r = mulberry(3); for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) { x.fillStyle = `hsl(${330 + r() * 20},${10 + r() * 10}%,${52 + r() * 12}%)`; x.beginPath(); x.roundRect(i * 16 + (j % 2) * 8 + 1, j * 16 + 1, 14, 14, 4); x.fill(); } }, [16, 8]);
-  addGround(new THREE.Mesh(new THREE.BoxGeometry(70, 1, 40), new THREE.MeshStandardMaterial({ map: cob, roughness: 0.95 }))).position.y = -0.5;
-  for (const sz of [-5.9, 5.9]) { const c = bx(50, 0.12, 0.3, MC('#d9c9cf')); c.position.set(0, 0.06, sz); B.group.add(c); }
+  addGround(new THREE.Mesh(new THREE.BoxGeometry(100, 1, 40), new THREE.MeshStandardMaterial({ map: cob, roughness: 0.95 }))).position.y = -0.5;
+  for (const sz of [-5.9, 5.9]) { const c = bx(78, 0.12, 0.3, MC('#d9c9cf')); c.position.set(0, 0.06, sz); B.group.add(c); }
   // north side (facades face +z), front at z=-6
   rowHouse(-24, -16, -6, 1, 11, '#3b3346', { roof: false, glass: glowMat('#4a5a7a', '#9ad7ff', 0.25, 1.2), frame: '#2a2030', sign: ['office', '💼 OFFICE', 2.6, { bg: '#141114', fg: '#9ad7ff' }], shopWin: true, doorC: '#2a3550' });
   rowHouse(-15.5, -11, -6, 1, 8, '#f6efe6', { awning: '#3a8a6a', sign: ['market', '🛒 Fresh Market', 3.4, { bg: '#fff3f7', fg: '#3a8a6a', font: '900 30px Nunito, sans-serif' }], shopWin: true, frame: '#3a8a6a' });
@@ -1663,10 +1696,30 @@ function buildCity() {
   // flower buckets
   for (let k = 0; k < 4; k++) { at(cyl(0.25, 0.2, 0.4, 10, MC('#8a8a9a')), -22.5 + k * 0.9, 0.2, 4.6); for (let j = 0; j < 3; j++) at(sph(0.12, MC(['#ff6fa3', '#c2183f', '#f5c542', '#fff3f7'][(k + j) % 4]), 8), -22.6 + k * 0.9 + j * 0.08, 0.5 + j * 0.05, 4.6); }
   addRect(-23, -19.4, 4.3, 4.9);
+  // west & east districts
+  rowHouse(-38, -31.5, -6, 1, 8, '#ffc8dc', { awning: '#141114', sign: ['salon', '💇 GLAM', 2.8, { bg: '#141114', fg: '#ff8ab5' }], shopWin: true, frame: '#141114' });
+  rowHouse(-31, -24.5, -6, 1, 9, '#2a2a3a', { roof: false, sign: ['gym', '🏋️ IRON HEART', 3.2, { bg: '#c2183f', fg: '#fff3f7', font: '900 30px Nunito, sans-serif' }], shopWin: true, frame: '#c2183f', doorC: '#c2183f' });
+  rowHouse(24.5, 31, -6, 1, 9, '#d9c9b8', { awning: '#3a2418', sign: ['library', '📚 БИБЛИОТЕКА', 3.4, { bg: '#3a2418', fg: '#f5c542', font: '900 28px Nunito, sans-serif' }], shopWin: true, frame: '#3a2418' });
+  rowHouse(31.5, 38, -6, 1, 10, '#4a3550', { roofH: 2.6 });
+  rowHouse(-38, -31, 6, -1, 8, '#2a0f3a', { roof: false, sign: ['karaoke', '🎤 NEON NIGHT', 3.4, { bg: '#141114', fg: '#ff6fff', font: '900 30px Nunito, sans-serif' }], shopWin: true, frame: '#ff6fff', doorC: '#ff3d7f' });
+  for (let k = 0; k < 10; k++) at(sph(0.08, glowMat(k % 2 ? '#ff6fff' : '#6ad7ff', k % 2 ? '#ff6fff' : '#6ad7ff', 0.8, 2), 6), -37.5 + k * 0.7, 5.0, 5.85);
+  rowHouse(-30.5, -24.5, 6, -1, 7, '#e8b4c4', {});
+  rowHouse(24.5, 31, 6, -1, 8, '#bfe3d0', { awning: '#ff6fa3' });
+  rowHouse(31.5, 38, 6, -1, 9, '#9b2d4f', { frame: '#f5c542' });
+  for (const x of [-37, -31.2, 26, 30.5, 36.5]) streetLamp(x, -4.9);
+  for (const x of [-37.5, -31.5, -27, 25.5, 33, 37]) streetLamp(x, 4.9);
+  for (const x of [-29.5, 33.5]) { at(rb(1.2, 0.6, 1.2, MC('#5a4450'), 0.05), x, 0.3, -4.6); const tr = at(rb(1.2, 1.2, 1.2, MC('#f08bb3'), 0.3), x, 1.4, -4.6); tr.scale.set(1, 1.2, 1); addCircle(x, -4.6, 0.7); }
+  const pb = new THREE.Group(); pb.position.set(28.5, 0, 4.0);
+  at(rb(1.8, 2.5, 1.4, MC('#ff6fa3'), 0.08), 0, 1.25, 0, pb); at(rb(1.2, 1.8, 0.05, MC('#141114'), 0.02), 0, 1.1, -0.72, pb);
+  at(sph(0.12, glowMat('#ffffff', '#ffffff', 0.8, 1.6), 8), 0.6, 2.2, -0.72, pb);
+  const pbs = signMesh('photo', '📸 PHOTO', 1.4, 0.4); pbs.position.set(0, 2.75, -0.73); pbs.rotation.y = Math.PI; pb.add(pbs);
+  B.group.add(pb); addRect(27.6, 29.4, 3.3, 4.7);
+  addInter({ id: 'photobooth', group: pb, pos: { x: 28.5, z: 4 }, approach: { x: 28.5, z: 2.4 }, info: () => ({ icon: '📸', text: 'Фото на память' }), act: a => takePhoto(a) });
+  addLabel('📸 Фотобудка', 28.5, 3.5, 4); addLabel('💇 Салон Glam', -34.75, 5.5, -6); addLabel('🏋️ Спортзал', -27.75, 6.5, -6); addLabel('📚 Библиотека', 27.75, 5.5, -6); addLabel('🎤 Караоке', -34.5, 5.5, 6);
   // building interactions
   const door = (id, x, z, icon, text, act, human) => addInter({ id, human, pos: { x, z }, approach: { x, z: z + (z < 0 ? 1.2 : -1.2) }, info: () => ({ icon, text }), act });
   for (const [id, x, z, icon, text] of CITY_DOORS) door(id, x, z, icon, 'Войти: ' + text, () => travel(id), false);
-  for (const [id, x, z] of [['office', -20, -6], ['mall', -2, -6], ['cafe', 14.5, -6], ['fleur', -20.2, 6], ['cinema', 18, 6], ['market', -13.25, -6], ['sakura', 7.75, -6]]) {
+  for (const [id, x, z] of CITY_DOORS) {
     const hit = new THREE.Mesh(new THREE.BoxGeometry(3, 3, 0.4), new THREE.MeshBasicMaterial({ visible: false })); hit.position.set(x, 1.5, z + (z < 0 ? 0.2 : -0.2)); B.group.add(hit); tagInter(hit, id); B.pickables.push(hit);
   }
   addLabel('💼 Офис', -20, 6.2, -6); addLabel('🛒 Супермаркет', -13.25, 5, -6); addLabel('🏮 Sakura Mart', 8.75, 5, -6); addLabel('🛍 ТЦ Galleria Rosa', -2, 7, -6); addLabel('☕ Кафе', 14.5, 5, -6); addLabel('🌷 Цветы', -20.2, 5, 6); addLabel('🎬 Кино', 18, 6.6, 6); addLabel('🚌 Остановка', 1, 3.4, 5.2);
@@ -1682,7 +1735,7 @@ function drawClock() {
 }
 
 // ================= interiors =================
-const CITY_DOORS = [['office', -20, -6, '💼', 'Офис'], ['mall', -2, -6, '🛍', 'Galleria Rosa'], ['cafe', 14.5, -6, '☕', 'Кафе'], ['fleur', -20.2, 6, '🌷', 'Fleur'], ['cinema', 18, 6, '🎬', 'Кино'], ['market', -13.25, -6, '🛒', 'Супермаркет'], ['sakura', 7.75, -6, '🏮', 'Sakura Mart']];
+const CITY_DOORS = [['office', -20, -6, '💼', 'Офис'], ['mall', -2, -6, '🛍', 'Galleria Rosa'], ['cafe', 14.5, -6, '☕', 'Кафе'], ['fleur', -20.2, 6, '🌷', 'Fleur'], ['cinema', 18, 6, '🎬', 'Кино'], ['market', -13.25, -6, '🛒', 'Супермаркет'], ['sakura', 7.75, -6, '🏮', 'Sakura Mart'], ['salon', -34.75, -6, '💇', 'Салон Glam'], ['gym', -27.75, -6, '🏋️', 'Спортзал'], ['library', 27.75, -6, '📚', 'Библиотека'], ['karaoke', -34.5, 6, '🎤', 'Караоке']];
 function floorTex(id, kind, c1, c2, rep) {
   return canvasTex('floor_' + id, 128, 128, x => {
     if (kind === 'tile') { for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { x.fillStyle = (i + j) % 2 ? c1 : c2; x.fillRect(i * 32, j * 32, 32, 32); } }
@@ -1799,6 +1852,50 @@ function buildInteriors() {
     addInter({ id: 'popcornBar', group: bar, pos: { x: 5.6, z: 4.2 }, approach: { x: 4.2, z: 4.2 }, info: () => ({ icon: '🍿', text: 'Кинобар' }), act: () => openShopList('cinema') });
     addLabel('🍿 Кинобар', 5.6, 2.6, 4.2);
   } });
+  interior('salon', { name: 'Салон Glam', icon: '💇', w: 10, d: 8, wall: '#ffd6e5', floor: 'tile', f1: '#ffffff', f2: '#ffc8dc', sign: '💇 GLAM', signOpts: { bg: '#141114', fg: '#ff8ab5' }, build: (w, d) => {
+    const st = new THREE.Group(); B.group.add(st);
+    for (const x of [-2.6, 0, 2.6]) {
+      at(rb(1.35, 1.75, 0.06, MC('#141114'), 0.03), x, 2.3, -d / 2 + 0.06, st); at(rb(1.2, 1.6, 0.04, MC('#d9e7f2', { metalness: 0.7, roughness: 0.08 }), 0.03), x, 2.3, -d / 2 + 0.1, st);
+      at(rb(0.85, 0.45, 0.8, MC('#ff6fa3'), 0.1), x, 0.55, -2.2, st); at(rb(0.85, 0.75, 0.2, MC('#ff6fa3'), 0.08), x, 1.0, -2.55, st); at(cyl(0.1, 0.2, 0.35, 8, MC('#cfcad3', { metalness: 0.6 })), x, 0.18, -2.2, st); addCircle(x, -2.2, 0.5);
+    }
+    addInter({ id: 'salonChair', human: true, group: st, pos: { x: 0, z: -2.2 }, approach: { x: 0, z: -0.8 }, info: () => ({ icon: '💇', text: 'Новая причёска' }), act: () => openSalon() });
+    for (const x of [-4, 4]) { const pl = furnModel('plant'); pl.position.set(x, 0, 2.6); B.group.add(pl); addCircle(x, 2.6, 0.5); }
+  } });
+  interior('gym', { name: 'Спортзал Iron Heart', icon: '🏋️', w: 12, d: 9, wall: '#2a2a3a', trim: '#c2183f', floor: 'carpet', f1: '#3a3a4a', f2: '#2a2a38', sign: '🏋️ IRON HEART', signOpts: { bg: '#c2183f', fg: '#fff3f7' }, build: (w, d) => {
+    for (const x of [-4.2, -2.4]) { at(rb(1, 0.25, 2.2, MC('#141114'), 0.05), x, 0.15, -2.5); at(rb(1, 1.3, 0.12, MC('#5a5a6a'), 0.03), x, 0.8, -3.55); addRect(x - 0.5, x + 0.5, -3.65, -1.4); }
+    at(rb(3, 1.2, 0.6, MC('#5a5a6a'), 0.04), 3.4, 0.6, -3.7); for (let k = 0; k < 5; k++) at(sph(0.16, MC('#141114'), 10), 2.3 + k * 0.55, 1.35, -3.7); addRect(1.9, 4.9, -4.0, -3.4);
+    const g = new THREE.Group(); g.position.set(3, 0, 0);
+    at(rb(0.6, 0.5, 1.8, MC('#c2183f'), 0.08), 0, 0.3, 0, g); for (const z of [-0.7, 0.7]) at(cyl(0.05, 0.05, 1.3, 6, MC('#cfcad3')), z * 0, 0.65, -0.7, g);
+    const bar = cyl(0.04, 0.04, 2.2, 8, MC('#cfcad3', { metalness: 0.7 })); bar.rotation.z = Math.PI / 2; bar.position.set(0, 1.25, -0.7); g.add(bar);
+    for (const sx of [-1, 1]) { const pl = cyl(0.3, 0.3, 0.1, 16, MC('#141114')); pl.rotation.z = Math.PI / 2; pl.position.set(sx * 0.95, 1.25, -0.7); g.add(pl); }
+    B.group.add(g); addRect(2.6, 3.4, -0.95, 0.95);
+    addInter({ id: 'gymBench', human: true, group: g, pos: { x: 3, z: 0 }, approach: { x: 1.7, z: 0.2 }, info: () => ({ icon: '🏋️', text: 'Тренировка' }), act: a => doGym(a) });
+    for (const x of [-3, -1]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 2), MC('#ff6fa3')); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.02, 1.6); B.group.add(m); }
+    addLabel('🏋️ Тренировка', 3, 2.4, 0);
+  } });
+  let disco = null;
+  interior('karaoke', { name: 'Караоке Neon Night', icon: '🎤', w: 12, d: 10, wall: '#1a0a2a', trim: '#ff3d7f', floor: 'carpet', f1: '#2a0f3a', f2: '#3a1450', sign: '🎤 NEON NIGHT', signOpts: { bg: '#141114', fg: '#ff6fff' }, build: (w, d) => {
+    const g = new THREE.Group(); g.position.set(0, 0, -3);
+    at(rb(6, 0.4, 2.4, MC('#3a1450'), 0.05), 0, 0.2, 0, g);
+    at(rb(6.1, 0.06, 0.08, glowMat('#ff6fff', '#ff6fff', 1.2, 1.8), 0.02), 0, 0.42, 1.2, g); at(rb(6.1, 0.06, 0.08, glowMat('#6ad7ff', '#6ad7ff', 1.2, 1.8), 0.02), 0, 0.12, 1.22, g);
+    at(cyl(0.03, 0.05, 1.4, 8, MC('#cfcad3')), 0, 1.1, 0.2, g); at(sph(0.1, MC('#141114'), 10), 0, 1.85, 0.2, g);
+    B.group.add(g); addRect(-3, 3, -4.2, -1.8);
+    addInter({ id: 'karaokeStage', group: g, pos: { x: 0, z: -3 }, approach: { x: 0, z: -1.1 }, info: () => ({ icon: '🎤', text: 'Спеть' }), act: a => doKaraoke(a) });
+    const scr = new THREE.Mesh(new THREE.PlaneGeometry(4, 1.6), glowMat('#2a1640', '#a35cff', 0.8, 1.1)); scr.position.set(0, 3, -d / 2 + 0.05); B.group.add(scr);
+    for (const x of [-3.5, 3.5]) { const so = furnModel('sofa'); so.position.set(x, 0, 2.6); so.rotation.y = Math.PI; B.group.add(so); addCircle(x, 2.6, 1); }
+    disco = sph(0.45, MC('#e8e8f0', { metalness: 0.9, roughness: 0.15 }), 14); disco.position.set(0, 3.9, 0); B.group.add(disco);
+    B.anim.push(t => { disco.rotation.y = t; });
+    addLabel('🎤 Сцена', 0, 2.6, -3);
+  } });
+  interior('library', { name: 'Библиотека', icon: '📚', w: 12, d: 9, wall: '#e9dcc8', trim: '#3a2418', floor: 'wood', f1: '#7a5a40', f2: '#6a4a32', sign: '📚 БИБЛИОТЕКА', signOpts: { bg: '#3a2418', fg: '#f5c542' }, build: (w, d) => {
+    shelf(-4.6, -0.8, 0.8, 4, 2.2, '#5a3a28', 31); shelf(4.6, -0.8, 0.8, 4, 2.2, '#5a3a28', 32); shelf(0.8, -3.9, 5, 0.7, 2.2, '#5a3a28', 33);
+    const g = new THREE.Group(); g.position.set(0, 0, 0.6);
+    at(rb(2.6, 0.12, 1.4, MC('#7a4a3a'), 0.03), 0, 0.85, 0, g); for (const [x, z] of [[-1.1, -0.55], [1.1, -0.55], [-1.1, 0.55], [1.1, 0.55]]) at(rb(0.1, 0.85, 0.1, MC('#3a2418'), 0.02), x, 0.42, z, g);
+    at(cyl(0.12, 0.16, 0.06, 10, MC('#141114')), 0.8, 0.94, -0.2, g); at(cyl(0.02, 0.02, 0.5, 6, MC('#141114')), 0.8, 1.2, -0.2, g); at(cyl(0.12, 0.2, 0.2, 10, glowMat('#ffe9c9', '#ffd98a', 1, 1.4)), 0.8, 1.48, -0.2, g);
+    for (let k = 0; k < 3; k++) at(rb(0.35, 0.08, 0.25, MC(['#c2183f', '#3a5aa8', '#3a8a6a'][k]), 0.02), -0.6 + k * 0.1, 0.95 + k * 0.08, 0.1, g);
+    B.group.add(g); addRect(-1.35, 1.35, -0.15, 1.35);
+    addInter({ id: 'libraryRead', human: true, group: g, pos: { x: 0, z: 0.6 }, approach: { x: 0, z: 2.2 }, info: () => ({ icon: '📖', text: 'Почитать' }), act: a => doRead(a) });
+  } });
 }
 
 // ================= films & TV =================
@@ -1816,9 +1913,9 @@ function fsky(x, w, h, c1, c2) { const g = x.createLinearGradient(0, 0, 0, h); g
 function fstars(x, w, h, t, n = 90, seed = 1, yMax = 0.7) { const r = mulberry(seed); for (let i = 0; i < n; i++) { const sx = r() * w, sy = r() * h * yMax, a = 0.35 + 0.65 * Math.abs(Math.sin(t * 1.5 + i)); x.fillStyle = `rgba(255,255,255,${a})`; x.fillRect(sx, sy, 2, 2); } }
 function fheart(x, cx, cy, sz, col) { heartPath(x, cx, cy, sz); x.fillStyle = col; x.fill(); }
 function fglow(x, cx, cy, r, col) { const g = x.createRadialGradient(cx, cy, 0, cx, cy, r); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(cx - r, cy - r, r * 2, r * 2); }
-function fcat(x, cx, cy, u) {
+function fcat(x, cx, cy, u, step = 0) {
   x.fillStyle = '#eaa2a8'; x.fillRect(cx - 14 * u, cy - 15 * u, 26 * u, 10 * u);
-  for (const lx of [-13, -7, 3, 8]) x.fillRect(cx + lx * u, cy - 6 * u, 4 * u, 6 * u);
+  [-13, -7, 3, 8].forEach((lx, k) => x.fillRect(cx + lx * u + Math.sin(step + k * Math.PI / 2) * 2 * u, cy - 6 * u, 4 * u, 6 * u));
   x.fillRect(cx + 7 * u, cy - 27 * u, 14 * u, 13 * u);
   x.beginPath(); x.moveTo(cx + 7 * u, cy - 26 * u); x.lineTo(cx + 9 * u, cy - 33 * u); x.lineTo(cx + 12 * u, cy - 27 * u); x.moveTo(cx + 16 * u, cy - 27 * u); x.lineTo(cx + 19 * u, cy - 33 * u); x.lineTo(cx + 21 * u, cy - 26 * u); x.fill();
   x.strokeStyle = '#eaa2a8'; x.lineWidth = 3 * u; x.beginPath(); x.moveTo(cx - 13 * u, cy - 13 * u); x.quadraticCurveTo(cx - 22 * u, cy - 16 * u, cx - 20 * u, cy - 26 * u); x.stroke();
@@ -1834,7 +1931,9 @@ function fperson(x, cx, cy, u, o, step = 0) {
   x.fillStyle = o.hair; x.fillRect(cx - 10 * u, cy - 57 * u, 20 * u, 6 * u);
   if (o.long) { x.fillRect(cx - 11 * u, cy - 54 * u, 4 * u, 24 * u); x.fillRect(cx + 7 * u, cy - 54 * u, 4 * u, 24 * u); x.fillRect(cx - 9 * u, cy - 52 * u, 18 * u, 3 * u); }
   else for (let k = 0; k < 5; k++) x.fillRect(cx - 11 * u + k * 5 * u, cy - 60 * u + (k % 2) * 2 * u, 5 * u, 5 * u);
-  x.fillStyle = '#1c0f12'; x.fillRect(cx - 5 * u, cy - 46 * u, 3 * u, 3 * u); x.fillRect(cx + 2 * u, cy - 46 * u, 3 * u, 3 * u);
+  const blink = Math.sin(performance.now() / 700 + cx) > 0.96;
+  x.fillStyle = '#1c0f12'; if (blink) { x.fillRect(cx - 5 * u, cy - 45 * u, 3 * u, 1 * u); x.fillRect(cx + 2 * u, cy - 45 * u, 3 * u, 1 * u); } else { x.fillRect(cx - 5 * u, cy - 46 * u, 3 * u, 3 * u); x.fillRect(cx + 2 * u, cy - 46 * u, 3 * u, 3 * u); }
+  x.fillStyle = 'rgba(240,110,140,.5)'; x.fillRect(cx - 8 * u, cy - 42 * u, 3 * u, 2 * u); x.fillRect(cx + 5 * u, cy - 42 * u, 3 * u, 2 * u);
 }
 const POLINA = { top: '#141014', pants: '#1b1619', hair: '#4e0d1c', long: true }, DENIS = { top: '#151215', pants: '#2a1d22', hair: '#2a1712' };
 function filmMoon(x, w, h, t) {
@@ -1846,7 +1945,7 @@ function filmMoon(x, w, h, t) {
   const off = Math.min(Math.max(t - 14, 0), 17) * 40;
   for (let i = -1; i < 10; i++) { const idx = Math.floor(off / 90) + i, bxp = i * 90 - (off % 90), r = mulberry(idx * 7 + 1), bh = 70 + r() * 70; x.fillStyle = '#1a0b1a'; x.fillRect(bxp, h - bh, 86, bh); x.fillStyle = '#ffd98a'; for (let k = 0; k < 6; k++) if (r() < 0.45) x.fillRect(bxp + 10 + (k % 3) * 24, h - bh + 18 + Math.floor(k / 3) * 26, 10, 12); }
   const jumping = t > 14 && t < 31, cy = h - 110 - (jumping ? Math.abs(Math.sin(t * 2.6)) * 70 : 0);
-  fcat(x, 210, cy, 2);
+  fcat(x, 210, cy, 2, jumping ? t * 14 : 0);
   if (t > 37) for (let k = 0; k < 4; k++) fheart(x, 250 + k * 40, 150 - ((t * 30 + k * 30) % 120), 8, `rgba(255,111,163,${0.8})`);
 }
 function filmSakura(x, w, h, t) {
@@ -1914,75 +2013,139 @@ function filmRain(x, w, h, t) {
   x.strokeStyle = '#141114'; x.lineWidth = 3; x.beginPath(); x.moveTo(wx, h - 115); x.lineTo(wx, h - 60); x.stroke();
   x.strokeStyle = 'rgba(200,220,255,.5)'; x.lineWidth = 1.5; for (let i = 0; i < 90; i++) { const rx = (r() * w + t * 40) % w, ry = (r() * h + t * 420) % h; if (Math.abs(rx - wx) < 50 && ry < h - 110 && ry > h - 170) continue; x.beginPath(); x.moveTo(rx, ry); x.lineTo(rx - 3, ry + 12); x.stroke(); }
 }
-let film = null, filmGain = null;
-function filmTone(f, tt) {
+let film = null, filmGain = null, ytApi = null, ytResults = null, ytQuery = '';
+function filmTone(f) {
   if (!AC) return;
   if (!filmGain) { filmGain = AC.createGain(); filmGain.connect(AC.destination); }
   filmGain.gain.value = state.settings.music ? 0.06 : 0;
   const sc = [0, 3, 5, 7, 10, 12, 15];
+  if (film.next < AC.currentTime) film.next = AC.currentTime + 0.05;
   while (film.next < AC.currentTime + 0.3) { const k = film.step++; const m = f.root + sc[(k * 3 + Math.floor(k / 4)) % sc.length] + (k % 8 === 0 ? -12 : 0); tone(midi(m + 12), film.next, 0.7, 'sine', 0.5, filmGain); if (k % 8 === 0) tone(midi(f.root - 12), film.next, 2.4, 'triangle', 0.6, filmGain); film.next += 0.32; }
 }
+function filmPost(x, f, t) {
+  const w = 640, h = 360;
+  const vg = x.createRadialGradient(w / 2, h / 2, h * 0.3, w / 2, h / 2, h * 0.9); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.5)'); x.fillStyle = vg; x.fillRect(0, 0, w, h);
+  x.fillStyle = 'rgba(255,255,255,.05)'; for (let i = 0; i < 50; i++) x.fillRect(Math.random() * w, Math.random() * h, 1.5, 1.5);
+  const fade = Math.max(1 - t / 1.2, 1 - (f.dur - t) / 1.2, 0); if (fade > 0) { x.fillStyle = `rgba(0,0,0,${clamp(fade, 0, 1)})`; x.fillRect(0, 0, w, h); }
+  if (t < 3.2) { const a = t < 0.6 ? t / 0.6 : t > 2.4 ? (3.2 - t) / 0.8 : 1; x.globalAlpha = clamp(a, 0, 1); x.fillStyle = 'rgba(20,6,14,.55)'; x.fillRect(0, h / 2 - 50, w, 100); x.fillStyle = '#fff3f7'; x.font = '900 40px Nunito, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(`${f.emoji} ${f.title}`, w / 2, h / 2 - 8); x.font = '700 16px Nunito, sans-serif'; x.fillStyle = '#ffc8dc'; x.fillText('Goth Family Studio 🖤', w / 2, h / 2 + 28); x.globalAlpha = 1; }
+}
+const fmtT = v => `${Math.floor(v / 60)}:${String(Math.floor(v % 60)).padStart(2, '0')}`;
+function updCtl(t, dur, playing) { const sk = $('plSeek'); if (!sk.dragging) { sk.max = dur || 1; sk.value = t; } $('plTime').textContent = `${fmtT(t)} / ${fmtT(dur || 0)}`; $('plPlay').textContent = playing ? '⏸' : '▶️'; }
+function ctlToggle() { if (!film) return; if (film.yt) { const pl = film.player; if (!pl?.getPlayerState) return; pl.getPlayerState() === 1 ? pl.pauseVideo() : pl.playVideo(); } else { film.paused = !film.paused; } haptic(); }
+function ctlSeek(v, rel) { if (!film) return; if (film.yt) { const pl = film.player; if (!pl?.getCurrentTime) return; pl.seekTo(Math.max(0, rel ? pl.getCurrentTime() + v : v), true); } else film.t = clamp(rel ? film.t + v : v, 0, film.f.dur - 0.05); }
 function playFilm(f, onEnd) {
   initAudio(); if (musicGain) musicGain.gain.value = 0;
   $('plTitle').textContent = `${f.emoji} ${f.title}`; $('plNote').textContent = ''; $('plSub').textContent = '';
-  $('plScreen').querySelector('iframe')?.remove(); const cv = $('plCanvas'); cv.style.display = 'block';
+  $('plScreen').querySelectorAll('iframe,#ytHolder').forEach(e => e.remove()); const cv = $('plCanvas'); cv.style.display = 'block';
   $('player').classList.remove('hidden', 'mini'); $('plMini').style.display = L.id === 'cinema' ? '' : 'none';
-  const x = cv.getContext('2d'), t0 = performance.now();
-  film = { f, onEnd, step: 0, next: AC ? AC.currentTime + 0.1 : 0 };
-  const tick = () => {
+  const x = cv.getContext('2d');
+  film = { f, onEnd, t: 0, paused: false, step: 0, next: AC ? AC.currentTime + 0.1 : 0, last: performance.now() };
+  const tick = now => {
     if (!film || film.f !== f) return;
-    const t = (performance.now() - t0) / 1000;
+    const dt = Math.min(0.1, (now - film.last) / 1000); film.last = now;
+    if (!film.paused) film.t += dt;
+    const t = film.t;
     if (t >= f.dur) return endFilm(true);
-    const sub = f.subs.filter(s => t >= s[0]).pop();
-    x.save(); f.draw(x, 640, 360, t); x.restore();
+    const sub = f.subs.filter(q => t >= q[0]).pop();
+    x.save(); f.draw(x, 640, 360, t); x.restore(); filmPost(x, f, t);
+    if (film.paused) { x.fillStyle = 'rgba(0,0,0,.35)'; x.fillRect(0, 0, 640, 360); x.fillStyle = '#fff'; x.fillRect(296, 150, 16, 60); x.fillRect(328, 150, 16, 60); }
     if (cinemaScr && L.id === 'cinema') { if (!filmTex) { filmTex = new THREE.CanvasTexture(cv); filmTex.colorSpace = THREE.SRGBColorSpace; filmMat = new THREE.MeshBasicMaterial({ map: filmTex }); } cinemaScr.material = filmMat; filmTex.needsUpdate = true; }
     if ($('player').classList.contains('mini')) $('plTitle').textContent = `${f.emoji} ${sub ? fill(sub[1]) : f.title}`;
-    $('plSub').textContent = sub ? fill(sub[1]) : '';
-    $('plProg').style.width = (t / f.dur * 100) + '%';
-    filmTone(f, t); requestAnimationFrame(tick);
+    $('plSub').textContent = t > 3 && sub ? fill(sub[1]) : '';
+    updCtl(t, f.dur, !film.paused);
+    if (!film.paused) filmTone(f);
+    requestAnimationFrame(tick);
   };
-  tick();
+  requestAnimationFrame(tick);
+}
+function loadYT() {
+  if (ytApi) return ytApi;
+  ytApi = new Promise((res, rej) => {
+    if (window.YT && YT.Player) return res();
+    const prev = window.onYouTubeIframeAPIReady; window.onYouTubeIframeAPIReady = () => { prev?.(); res(); };
+    const sc = document.createElement('script'); sc.src = 'https://www.youtube.com/iframe_api'; sc.onerror = () => { ytApi = null; rej(new Error('api')); }; document.head.appendChild(sc);
+    setTimeout(() => { if (!(window.YT && YT.Player)) { ytApi = null; rej(new Error('timeout')); } }, 9000);
+  });
+  return ytApi;
 }
 function playYouTube(v, onEnd) {
   if (musicGain) musicGain.gain.value = 0;
-  $('plTitle').textContent = '▶️ ' + v.title; $('plSub').textContent = ''; $('plProg').style.width = '0';
-  $('plNote').textContent = 'Видео с YouTube — без входа в аккаунт';
-  $('plCanvas').style.display = 'none'; $('plScreen').querySelector('iframe')?.remove();
-  const fr = document.createElement('iframe'); fr.src = `https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&playsinline=1&rel=0&modestbranding=1`; fr.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen'; fr.allowFullscreen = true;
-  $('plScreen').prepend(fr); $('player').classList.remove('hidden', 'mini'); $('plMini').style.display = 'none';
+  $('plTitle').textContent = '▶️ ' + v.title; $('plSub').textContent = ''; $('plNote').textContent = 'Загружаю видео…';
+  $('plCanvas').style.display = 'none'; $('plScreen').querySelectorAll('iframe,#ytHolder').forEach(e => e.remove());
+  const holder = document.createElement('div'); holder.id = 'ytHolder'; $('plScreen').prepend(holder);
+  $('player').classList.remove('hidden', 'mini'); $('plMini').style.display = 'none';
   film = { f: v, onEnd, yt: true };
+  const mine = film;
+  loadYT().then(() => {
+    if (film !== mine) return;
+    mine.player = new YT.Player('ytHolder', { videoId: v.id, host: 'https://www.youtube-nocookie.com', playerVars: { autoplay: 1, playsinline: 1, rel: 0, modestbranding: 1, controls: 1 },
+      events: { onReady: e => { $('plNote').textContent = 'YouTube без входа в аккаунт · пробел — пауза'; e.target.playVideo(); }, onStateChange: e => { if (e.data === 0 && film === mine) endFilm(true); }, onError: () => { $('plNote').textContent = 'Автор запретил показывать это видео вне YouTube 😿 Выбери другое'; } } });
+    mine.iv = setInterval(() => { const pl = mine.player; if (film !== mine || !pl?.getCurrentTime) return; updCtl(pl.getCurrentTime(), pl.getDuration?.() || 0, pl.getPlayerState?.() === 1); }, 400);
+  }).catch(() => {
+    if (film !== mine) return;
+    holder.remove(); const fr = document.createElement('iframe'); fr.src = `https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&playsinline=1&rel=0&modestbranding=1`; fr.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen'; fr.allowFullscreen = true; $('plScreen').prepend(fr);
+    $('plNote').textContent = 'Управление — кнопками внутри видео';
+  });
 }
 function endFilm(done) {
   const f = film; film = null;
-  $('player').classList.add('hidden'); $('player').classList.remove('mini'); $('plScreen').querySelector('iframe')?.remove();
+  if (f?.iv) clearInterval(f.iv); try { f?.player?.destroy?.(); } catch (e) {}
+  $('player').classList.add('hidden'); $('player').classList.remove('mini'); $('plScreen').querySelectorAll('iframe,#ytHolder').forEach(e => e.remove());
   if (cinemaScr) cinemaScr.material = cinemaScr.userData.baseMat;
   applyVolumes(); f?.onEnd?.(done || !!f?.yt);
 }
 const ytId = s => { const m = String(s).match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([\w-]{11})/) || String(s).trim().match(/^([\w-]{11})$/); return m ? m[1] : null; };
-async function addVideo(link) {
-  const id = ytId(link); if (!id) return toast('Не похоже на ссылку YouTube 🤔');
+const PIPED = ['https://api.piped.private.coffee', 'https://pipedapi.ducks.party', 'https://piapi.ggtyler.dev', 'https://pipedapi.kavin.rocks'];
+async function ytSearch(q) {
+  for (const base of PIPED) {
+    try {
+      const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 6000);
+      const r = await fetch(`${base}/search?q=${encodeURIComponent(q)}&filter=videos`, { signal: ctl.signal }); clearTimeout(to);
+      if (!r.ok) continue;
+      const j = await r.json();
+      const items = (j.items || []).filter(i => i.type === 'stream' && i.url).map(i => ({ id: (i.url.match(/v=([\w-]{11})/) || [])[1], title: i.title, ch: i.uploaderName || '', dur: i.duration || 0 })).filter(i => i.id).slice(0, 12);
+      if (items.length) return items;
+    } catch (e) {}
+  }
+  return null;
+}
+async function addVideo(link, meta) {
+  const id = meta?.id || ytId(link); if (!id) return toast('Не похоже на ссылку YouTube 🤔');
   if (state.videos.some(v => v.id === id)) return toast('Это видео уже в списке');
-  let title = 'Видео';
-  try { const r = await fetch(`https://noembed.com/embed?url=${encodeURIComponent('https://www.youtube.com/watch?v=' + id)}`); const j = await r.json(); if (j.title) title = j.title; } catch (e) {}
-  state.videos.unshift({ id, title: title.slice(0, 60), by: me.char || '' }); save(); toast('Видео добавлено 💕'); renderSheet();
+  let title = meta?.title || 'Видео';
+  if (!meta) try { const r = await fetch(`https://noembed.com/embed?url=${encodeURIComponent('https://www.youtube.com/watch?v=' + id)}`); const j = await r.json(); if (j.title) title = j.title; } catch (e) {}
+  state.videos.unshift({ id, title: title.slice(0, 70), by: me.char || '' }); save(); toast('Видео в вашем списке 💕'); renderSheet();
+}
+async function ytGo(where, q) {
+  ytQuery = q; const id = ytId(q);
+  if (id) { await addVideo(q); return; }
+  if (!q.trim()) return;
+  ytResults = 'loading'; renderSheet();
+  const r = await ytSearch(q); ytResults = r || 'fail'; renderSheet();
+}
+function videoTile(body, v, where, sub, onAdd) {
+  const b = tile(body, { e: '', n: v.title, s: sub, click: () => watch(where, done => playYouTube(v, done)) });
+  b.querySelector('.e').outerHTML = `<img class="thumb" src="https://i.ytimg.com/vi/${v.id}/mqdefault.jpg" alt="">`;
+  if (onAdd) { const x = document.createElement('span'); x.className = 'x'; x.textContent = onAdd.label; x.onclick = ev => { ev.stopPropagation(); onAdd.fn(); }; b.appendChild(x); }
+  return b;
 }
 function openScreen(where) {
-  const cinema = where === 'cinema';
+  const cinema = where === 'cinema'; ytResults = null;
   openSheet({ title: cinema ? '🎬 Кинотеатр Lumière' : '📺 Телевизор', tabs: [{ key: 'films', label: '🎞 Мультфильмы' }, { key: 'yt', label: '▶️ YouTube' }], render: (body, tab) => {
     if (cinema) info(body, '🎟 Билет на всю семью — 40🪙. Семья сядет в зал 🍿');
-    if (tab === 'films') for (const f of FILMS) tile(body, { e: f.emoji, n: f.title, s: `${f.dur} сек · мультик`, click: () => watch(where, done => playFilm(f, done)) });
+    if (tab === 'films') for (const f of FILMS) tile(body, { e: f.emoji, n: f.title, s: `${fmtT(f.dur)} · мультик`, click: () => watch(where, done => playFilm(f, done)) });
     else {
-      info(body, 'Вставь ссылку на любое видео с YouTube — смотреть можно без входа в аккаунт. Список общий для вас двоих 💞');
       const row = document.createElement('div'); row.className = 'row';
-      const inp = document.createElement('input'); inp.placeholder = 'https://youtu.be/…';
-      const ok = document.createElement('button'); ok.className = 'btn main'; ok.textContent = 'Добавить'; ok.onclick = () => addVideo(inp.value);
+      const inp = document.createElement('input'); inp.placeholder = 'Найти на YouTube или вставить ссылку'; inp.value = ytQuery;
+      inp.onkeydown = e => { if (e.key === 'Enter') ytGo(where, inp.value); };
+      const ok = document.createElement('button'); ok.className = 'btn main'; ok.textContent = '🔍'; ok.onclick = () => ytGo(where, inp.value);
       row.append(inp, ok); body.appendChild(row);
-      if (!state.videos.length) empty(body, 'Пока пусто. Добавь первое видео ☝️');
-      for (const v of state.videos) {
-        const b = tile(body, { e: '', n: v.title, s: v.by ? `добавил(а) ${nm(v.by)}` : '', click: () => watch(where, done => playYouTube(v, done)) });
-        b.querySelector('.e').outerHTML = `<img class="thumb" src="https://i.ytimg.com/vi/${v.id}/mqdefault.jpg" alt="">`;
-        const x = document.createElement('span'); x.className = 'x'; x.textContent = '✕'; x.onclick = ev => { ev.stopPropagation(); state.videos = state.videos.filter(q => q.id !== v.id); save(); renderSheet(); }; b.appendChild(x);
-      }
+      if (ytResults === 'loading') info(body, '🔍 Ищу видео…');
+      else if (ytResults === 'fail') info(body, 'Поиск сейчас недоступен 😿 Открой видео в YouTube, нажми «Поделиться» → «Копировать ссылку» и вставь её сюда');
+      else if (Array.isArray(ytResults)) { sec(body, 'Результаты поиска'); for (const v of ytResults) videoTile(body, v, where, `${v.ch}${v.dur ? ' · ' + fmtT(v.dur) : ''}`, { label: '➕', fn: () => addVideo('', v) }); }
+      sec(body, '💞 Наш список');
+      if (!state.videos.length) empty(body, 'Пока пусто. Найди видео и нажми ➕ — оно появится у вас обоих');
+      for (const v of state.videos) videoTile(body, v, where, v.by ? `добавил(а) ${nm(v.by)}` : '', { label: '✕', fn: () => { state.videos = state.videos.filter(q => q.id !== v.id); save(); renderSheet(); } });
     }
   } });
 }
@@ -1990,42 +2153,54 @@ function watch(where, play) {
   const cinema = where === 'cinema';
   if (cinema) { if (state.coins < 40) return toast('Билет стоит 40🪙'); bumpCoins(-40); sfx('coin'); }
   closeSheet();
-  const fam = famHere();
-  if (cinema) fam.forEach((a, k) => { const s = cinemaSeats[[6, 7, 8, 5][k] ?? k]; a.target = null; a.root.position.set(s.x, 0, s.z + 0.05); a.heading = Math.PI; a.want = Math.PI; a.root.rotation.y = Math.PI; a.busy = { type: a.def.kind === 'cat' ? 'sleep' : 'sit', t: 0, dur: Infinity, y: 0.45 }; });
+  const fam2 = famHere().filter(a => !a.remote);
+  if (cinema) fam2.forEach((a, k) => { const st = cinemaSeats[[6, 7, 8, 5][k] ?? k]; a.target = null; a.root.position.set(st.x, 0, st.z + 0.05); a.heading = Math.PI; a.want = Math.PI; a.root.rotation.y = Math.PI; a.busy = { type: a.def.kind === 'cat' ? 'sleep' : 'sit', t: 0, dur: Infinity, y: 0.45 }; });
   play(done => {
-    for (const a of fam) if (a.busy?.dur === Infinity) a.busy = null;
-    if (done) { for (const a of fam) { addStat(a, 'fun', cinema ? 28 : 15); floatAgent(a, cinema ? '🍿' : '📺'); } toast(cinema ? 'Отличный фильм! Семья в восторге 🎬💕' : 'Хорошо посмотрели 📺💕'); if (cinema) quest('mall'); sfx('heart'); save(); }
+    for (const a of fam2) if (a.busy?.dur === Infinity) a.busy = null;
+    if (done) { for (const a of fam2) { addStat(a, 'fun', cinema ? 28 : 15); floatAgent(a, cinema ? '🍿' : '📺'); } toast(cinema ? 'Отличный фильм! Семья в восторге 🎬💕' : 'Хорошо посмотрели 📺💕'); if (cinema) quest('mall'); sfx('heart'); save(); }
   });
 }
 
 // ================= NPCs =================
 const NPC_DEFS = [
   { id: 'leo', name: 'Лео', role: 'barista', loc: 'cafe', x: 0, z: -3.3, rot: 0, def: { face: 'npcA', hair: 'messy', skin: '#c98f6a' }, look: { top: '#f4eef0', sleeves: 'long', pants: '#2a2228', apron: '#141114', hair: '#2a1712' },
-    lines: ['Бонжур! Кофе сегодня особенно ароматный ☕', 'Круассаны свежие, только из печи 🥐', 'Нужна подработка? Я всегда рад помощи!', '{mom} и {dad} — моя любимая пара гостей 💕'],
+    lines: ['Бонжур! Кофе сегодня особенно ароматный ☕', 'Круассаны свежие, только из печи 🥐', 'Нужна подработка? Я всегда рад помощи!', '{mom} и {dad} — моя любимая пара гостей 💕', 'Попробуйте капучино с корицей — это моя гордость', 'Сегодня кто-то нарисовал котика на салфетке. Это были вы? 😄', 'Секрет хорошего дня — чашка кофе и хорошая компания', 'Тсс… у меня есть секретный рецепт. Подружимся — расскажу 😉', 'Когда идёт дождь, кафе становится самым уютным местом в городе', 'Как поживает ваш котик? Передавайте ему привет 🐈'],
     rewards: { 3: { items: { coffee: 3 }, msg: 'Держи пару стаканчиков кофе с собой ☕' }, 6: { furn: 'records', msg: 'У меня лишний проигрыватель. Пусть у вас дома играет музыка 🎶' }, 10: { coins: 200, msg: 'Ты мой лучший друг в этом городе! Держи премию 🪙' } } },
   { id: 'mila', name: 'Мила', role: 'florist', loc: 'fleur', x: 0, z: -2.7, rot: 0, def: { face: 'npcB', hair: 'bob', skin: '#f2c7a5' }, look: { top: '#bfe3d0', sleeves: 'short', skirt: '#3a5a48', trim: '#fff3f7', legs: '#f4e3e8', print: 'flower', hair: '#e88aa6' },
-    lines: ['Цветы любят заботу — прямо как люди 🌷', 'Розы — классика. Подари их кому-то особенному 🌹', 'Тюльпаны растут быстро и радуют сразу'],
+    lines: ['Цветы любят заботу — прямо как люди 🌷', 'Розы — классика. Подари их кому-то особенному 🌹', 'Тюльпаны растут быстро и радуют сразу', 'Подсолнухи всегда поворачиваются к солнцу. Будь как подсолнух ☀️', 'Мне сегодня принесли чёрные розы. Очень в вашем стиле 🖤', 'Букет без повода — лучший букет 💐', 'Знаешь, что значат белые лилии? Чистоту и нежность', 'Не забывай поливать грядки, цветы это чувствуют 💧', 'Мои цветы всегда пахнут весной, даже зимой', '{mom}, тебе очень пойдёт венок из роз 🌹'],
     rewards: { 3: { seeds: { rose: 3 }, msg: 'Вот тебе семена роз — посади их для {mom} 🌹' }, 6: { items: { bouquet: 2 }, msg: 'Два букета — просто так 💐' }, 10: { furn: 'plant', msg: 'Монстера из моей коллекции — тебе! 🪴' } } },
   { id: 'mark', name: 'Марк', role: 'mall', loc: 'mall', x: 2.6, z: 3.2, rot: 0, def: { face: 'npcC', hair: 'short', skin: '#d9a07a' }, look: { top: '#2a2a3a', sleeves: 'long', pants: '#1a1a22', print: 'tie', hair: '#1b1114', shoes: '#141114' },
-    lines: ['Добро пожаловать в «Galleria Rosa»! 🛍', 'В бутике новая коллекция — загляни!', 'Мебель для уютного дома — на втором этаже. Ну, почти 😉'],
+    lines: ['Добро пожаловать в «Galleria Rosa»! 🛍', 'В бутике новая коллекция — загляни!', 'Мебель для уютного дома — на втором этаже. Ну, почти 😉', 'Готический стиль снова в моде. Вы законодатели трендов 🖤', 'Сегодня распродажа… шучу, но скидки для друзей бывают 😏', '{dad}, тебе бы пошёл строгий костюм 🤵', 'Кольца в отделе подарков — самые красивые в городе 💍', 'Каждый день здесь — как маленький показ мод', 'Мечтаю о собственном бренде одежды', 'Хотите обновить гардероб? Я помогу выбрать'],
     rewards: { 3: { coins: 80, msg: 'Скидочный купон на 80🪙 — пользуйся!' }, 6: { furn: 'mirror', msg: 'Это зеркало с витрины — теперь ваше 🪞' }, 10: { furn: 'tv', msg: 'Телевизор в подарок постоянному клиенту 📺' } } },
   { id: 'vera', name: 'Бабушка Вера', role: 'granny', loc: 'park', x: 4, z: 9.3, rot: Math.PI, sit: true, def: { face: 'npcD', hair: 'granny', skin: '#efc4a8' }, look: { top: '#9b5a7a', sleeves: 'long', skirt: '#3a2b3a', legs: '#2b2328', shoes: '#2b2328', print: 'flower', hair: '#d9d0d8' },
-    lines: ['Ох, какие вы красивые сегодня! 💕', 'Голуби — мои лучшие слушатели 🕊', 'Берегите друг друга, деточки', '{kid} так выросла! Держи конфетку 🍬'],
+    lines: ['Ох, какие вы красивые сегодня! 💕', 'Голуби — мои лучшие слушатели 🕊', 'Берегите друг друга, деточки', '{kid} так выросла! Держи конфетку 🍬', 'В моё время мы тоже гуляли в этом парке под ручку', 'Не забывайте кушать горячее, а то исхудаете!', 'Дедушка мой тоже был красавец, как {dad} 😊', 'Пельмени — это любовь, завёрнутая в тесто 🥟', 'Вечером в парке так тихо и хорошо…', 'Приходите почаще, мне с вами веселее'],
     rewards: { 3: { items: { cake: 2 }, msg: 'Испекла вам тортик, кушайте на здоровье 🍰' }, 6: { seeds: { sunflower: 5 }, msg: 'Семечки подсолнуха — посадите у дома 🌻' }, 10: { furn: 'fireplace', msg: 'Пусть в вашем доме всегда будет тепло 🔥' } } },
   { id: 'timur', name: 'Тимур', role: 'musician', loc: 'park', x: -7.5, z: 5.8, rot: Math.PI * 0.8, guitar: true, def: { face: 'npcA', hair: 'cap', skin: '#b87a55' }, look: { top: '#2b2b2b', sleeves: 'long', pants: '#3a3a44', print: 'skull', hair: '#1b1114', capC: '#c2183f', guitar: true },
-    lines: ['Эта песня — для вас 🎸', 'Музыка лечит. Особенно в дождь 🌧', 'Хотите что-нибудь мрачно-романтичное? 🖤'],
+    lines: ['Эта песня — для вас 🎸', 'Музыка лечит. Особенно в дождь 🌧', 'Хотите что-нибудь мрачно-романтичное? 🖤', 'Вчера сочинил балладу про розового котика 🐈', 'Если грустно — включи громче любимую песню', 'Мой кумир — тот, кто играет от сердца', 'Парк — лучшая сцена в мире', '{mom} и {dad}, вы как дуэт — идеально звучите вместе', 'Гитара у меня старая, но поёт как новая', 'Однажды я сыграю на большой сцене. Придёте?'],
     rewards: { 3: { items: { chocolate: 2 }, msg: 'Фанаты угостили, делюсь 🍫' }, 6: { coins: 120, msg: 'Сегодня хорошие чаевые — половина твоя 🪙' }, 10: { furn: 'piano', msg: 'Моё старое пианино. Сыграй на нём для {mom} 🎹' } } },
   { id: 'nika', name: 'Ника', role: 'icecream', loc: 'park', x: 12.9, z: -6.4, rot: 0, def: { face: 'npcB', hair: 'long', skin: '#f2c7a5' }, look: { top: '#ffd6e5', sleeves: 'short', pants: '#5a7ab0', print: 'star', hair: '#f5d08a' },
-    lines: ['Мороженое — лучшее лекарство от грусти 🍦', 'Клубничное сегодня особенно вкусное!', 'Для {kid} — двойная порция 😄'],
+    lines: ['Мороженое — лучшее лекарство от грусти 🍦', 'Клубничное сегодня особенно вкусное!', 'Для {kid} — двойная порция 😄', 'Знаешь, что вкуснее мороженого? Мороженое вдвоём 💕', 'Сегодня придумала новый вкус… пока секрет', 'Котикам мороженое нельзя, а вот сливки — можно 😼', 'В жару у меня очередь до самого фонтана!', 'Шоколадное — для грустных, клубничное — для влюблённых', 'Попробуй шейк — он как облачко', 'Ты сегодня такой солнечный человек ☀️'],
     rewards: { 3: { items: { icecream: 3 }, msg: 'Три рожка за счёт заведения 🍦' }, 6: { items: { icecream: 5 }, msg: 'Ты мой любимый покупатель! 🍦🍦' }, 10: { furn: 'aquarium', msg: 'У нас дома появился аквариум, а старый — вам 🐠' } } },
   { id: 'olya', name: 'Оля', role: 'market', loc: 'market', x: 5.4, z: 2.0, rot: -Math.PI / 2, def: { face: 'npcB', hair: 'bun', skin: '#f2c7a5' }, look: { top: '#3a8a6a', sleeves: 'short', pants: '#2a2228', apron: '#3a8a6a', hair: '#7a1a3a' },
-    lines: ['Добро пожаловать в Fresh Market! 🛒', 'Сегодня свежая клубника 🍓', 'Для борща всё есть — капуста, картошка, мясо 🍲', '{mom} и {dad}, вы сегодня вместе за покупками? 💕'],
+    lines: ['Добро пожаловать в Fresh Market! 🛒', 'Сегодня свежая клубника 🍓', 'Для борща всё есть — капуста, картошка, мясо 🍲', '{mom} и {dad}, вы сегодня вместе за покупками? 💕', 'Яйца только что привезли с фермы 🥚', 'Говорят, ваш огород лучший на острове 🌱', 'Не забудьте муку — без неё блинчиков не будет 🥞', 'Молоко сегодня особенно свежее 🍼', 'Чек длиннее метра? Значит, будет праздник 🎉', 'Приходите ещё, я всегда рада!'],
     rewards: { 3: { items: { egg: 4, flour: 2 }, msg: 'Держи продукты для блинчиков 🥞' }, 6: { items: { meat: 2, cheese: 2 }, msg: 'Это вам на бургеры 🍔' }, 10: { coins: 150, msg: 'Скидочная карта лучшему покупателю 🪙' } } },
   { id: 'yuki', name: 'Юки', role: 'sakura', loc: 'sakura', x: 0, z: -3.2, rot: 0, def: { face: 'npcB', hair: 'bob', skin: '#f2d2b0' }, look: { top: '#141114', sleeves: 'long', pants: '#141114', print: 'flower', hair: '#1b1114' },
-    lines: ['Конничива! 🏮', 'Попробуйте онигири — сегодня с лососем 🍙', 'Рамен лучше всего греет в дождь 🍜', 'Данго — самый милый десерт 🍡'],
+    lines: ['Конничива! 🏮', 'Попробуйте онигири — сегодня с лососем 🍙', 'Рамен лучше всего греет в дождь 🍜', 'Данго — самый милый десерт 🍡', 'Нори хрустят, только если свежие — у нас всегда свежие', 'В Японии говорят: ешь медленно — живёшь долго', 'Хотите научиться делать суши? Нужны рис, нори и рыбка 🍣', 'Бабл-ти — моя слабость 🧋', 'Сакура скоро зацветёт в парке 🌸', 'Аригато, что зашли! 🙇'],
     rewards: { 3: { items: { nori: 3, rice: 3 }, msg: 'Нори и рис — для домашних суши 🍣' }, 6: { items: { ramen: 2 }, msg: 'Два рамена от заведения 🍜' }, 10: { items: { bento: 3 }, msg: 'Бенто для всей семьи 🍱' } } },
+  { id: 'alisa', name: 'Алиса', role: 'salon', loc: 'salon', x: 3.4, z: 0.6, rot: -Math.PI / 2, def: { face: 'npcB', hair: 'bob', skin: '#f2c7a5' }, look: { top: '#141114', sleeves: 'short', skirt: '#ff6fa3', trim: '#141114', legs: '#141114', shoes: '#141114', print: 'star', hair: '#f2a9c2' },
+    lines: ['Привет, красотка! Новая причёска? 💇', 'Каре сейчас в моде, особенно бордовое', 'Твои волосы — просто шёлк ✨', 'Хочешь цвет как у сакуры? 🌸', '{dad}, лохматая укладка тебе к лицу 😉', 'Сделаем образ для свидания? 💕', 'Пучок — это классика для малышки', 'Серебряный цвет — для смелых', 'Готика и розовый — лучшее сочетание', 'Приходи, как захочешь перемен!'],
+    rewards: { 3: { coins: 60, msg: 'Держи купон на укладку 💇' }, 6: { items: { bouquet: 1 }, msg: 'Цветы к твоей новой причёске 💐' }, 10: { coins: 150, msg: 'Ты моя любимая клиентка! 💕' } } },
+  { id: 'max', name: 'Макс', role: 'gym', loc: 'gym', x: -3.8, z: 1.6, rot: Math.PI / 2, def: { face: 'npcA', hair: 'short', skin: '#c98f6a' }, look: { top: '#c2183f', sleeves: 'short', pants: '#141114', print: 'heart', hair: '#1b1114' },
+    lines: ['Давай-давай, ещё один подход! 💪', 'Спорт — это энергия на весь день', 'Тренировка вдвоём — в два раза веселее', 'Сегодня день ног. Шучу, у нас каждый день весёлый', 'Не забывай пить воду 💧', 'Ты сегодня в отличной форме!', 'Отдых тоже важен — поспи как следует', 'Главное — регулярность, а не рекорды', '{dad}, сможешь пожать больше меня? 😏', 'Улыбка — лучшая разминка 😄'],
+    rewards: { 3: { items: { soda: 3 }, msg: 'Держи воду после тренировки 🥤' }, 6: { coins: 100, msg: 'Премия за упорство 💪' }, 10: { items: { onigiri: 4 }, msg: 'Правильное питание для чемпиона 🍙' } } },
+  { id: 'ru', name: 'Диджей Ру', role: 'karaoke', loc: 'karaoke', x: 4.4, z: -3.2, rot: -Math.PI / 2, def: { face: 'npcC', hair: 'cap', skin: '#b87a55' }, look: { top: '#2a1640', sleeves: 'long', pants: '#141114', print: 'skull', hair: '#1b1114', capC: '#ff6fff' },
+    lines: ['Микрофон ждёт тебя! 🎤', 'Сегодня вечер хитов!', 'Спойте дуэтом — публика обожает дуэты 💕', 'Не бойся фальшивить, тут все свои 😄', 'Неон, музыка и вы — идеальный вечер ✨', 'Лучший голос вечера получает аплодисменты 👏', 'Хочешь что-нибудь мрачное и красивое? 🖤', 'Танцпол открыт!', 'Ваша семья — звёзды этого зала ⭐', 'Ещё одну песню? Я за!'],
+    rewards: { 3: { items: { soda: 2 }, msg: 'Горло промочить 🥤' }, 6: { furn: 'records', msg: 'Проигрыватель для домашних вечеринок 🎶' }, 10: { coins: 180, msg: 'Гонорар звёздам вечера ⭐' } } },
+  { id: 'sofia', name: 'Софья', role: 'library', loc: 'library', x: -2.6, z: -2.9, rot: 0, def: { face: 'npcC', hair: 'bun', skin: '#efc4a8' }, look: { top: '#5a3a28', sleeves: 'long', skirt: '#2a1418', legs: '#2b2328', shoes: '#2b2328', print: 'flower', hair: '#4e0d1c' },
+    lines: ['Тише-тише, здесь читают 📚', 'Новая книга стихов на полке у окна', 'Книги — лучшие путешественники', 'Хочешь стихотворение о любви? Садись за стол 💕', 'В дождь здесь особенно уютно ☔', 'Каждая книга — маленький мир', 'Мне кажется, {mom} любит готические романы 🖤', 'Возвращай книги вовремя, пожалуйста 😊', 'Чтение перед сном — лучше любого снотворного', 'Приходи каждый день — для тебя всегда найдётся история'],
+    rewards: { 3: { seeds: { rose: 2 }, msg: 'Засушенная роза из книги… и семена 🌹' }, 6: { furn: 'shelf', msg: 'Книжный шкаф для вашего дома 📚' }, 10: { coins: 150, msg: 'Ты — лучший читатель года 📖' } } }
 ];
-const PED_LINES = ['Хорошего дня! ☀️', 'Какой милый котик! 😻', 'Привет-привет 👋', 'Обожаю этот город 🏙', 'Ой, извините 🙈', 'Вы новенькие? Добро пожаловать!', 'Какая красивая пара 💕', 'Сегодня отличная погода!'];
+const PED_LINES = ['Хорошего дня! ☀️', 'Какой милый котик! 😻', 'Привет-привет 👋', 'Обожаю этот город 🏙', 'Ой, извините 🙈', 'Вы новенькие? Добро пожаловать!', 'Какая красивая пара 💕', 'Сегодня отличная погода!', 'Вы не видели мою собаку? 🐕', 'Опаздываю на работу! 🏃', 'В кафе «Le Chat Noir» лучший кофе ☕', 'Говорят, в караоке сегодня вечеринка 🎤', 'Красивые у вас наряды 🖤', 'Малышка, держи шарик 🎈', 'Фонтан в парке исполняет желания ✨', 'В библиотеке новые книги 📚', 'Сфотографируйтесь в фотобудке! 📸', 'Ммм, пахнет пиццей 🍕', 'Гуляем всей семьёй? Как мило!', 'Не забудьте зонтик ☔']
 const fill = s => s.replace('{mom}', nm('mom')).replace('{dad}', nm('dad')).replace('{kid}', nm('kid'));
 class NPC {
   constructor(d, ped) {
@@ -2068,7 +2243,7 @@ const PED_LOOKS = () => {
 };
 function spawnNPCs() {
   for (const d of NPC_DEFS) new NPC(d);
-  for (const [loc, n] of [['city', 7], ['park', 4], ['mall', 3]]) for (let k = 0; k < n; k++) {
+  for (const [loc, n] of [['city', 11], ['park', 5], ['mall', 3]]) for (let k = 0; k < n; k++) {
     const pl = PED_LOOKS(), b = LOCS[loc].bound;
     let x, z, t = 0; do { x = rnd(b.x0 + 1, b.x1 - 1); z = rnd(b.z0 + 1, b.z1 - 1); } while (blocked(x, z, 0.6, LOCS[loc]) && ++t < 20);
     new NPC({ id: 'ped' + loc + k, loc, x, z, rot: rnd(0, 6), def: pl.def, look: pl.look }, true);
@@ -2080,7 +2255,22 @@ const frTitle = f => FR_TITLES.filter(t => f >= t[0]).pop()[1];
 function disc(shop) { let off = 0; for (const [id, st] of Object.entries(NPC_STORY)) if (st.perk?.shop === shop && (state.npc[id]?.f || 0) >= 6) off = Math.max(off, st.perk.off); return off; }
 const price = (base, shop) => Math.max(1, Math.round(base * (1 - disc(shop))));
 const priceTag = (base, shop) => disc(shop) ? `🪙${price(base, shop)} 💗−${Math.round(disc(shop) * 100)}%` : `🪙${base}`;
-const hearts = f => '💗'.repeat(Math.min(5, Math.floor(f / 2))) + '🤍'.repeat(5 - Math.min(5, Math.floor(f / 2)));
+const hearts = f => `💗${f}/10`;
+const NPC_LIKES = { leo: ['croissant', 'cake', 'coffee', 'tiramisu'], mila: ['rose', 'tulip', 'sunflower', 'bouquet', 'rosetea'], mark: ['coffee', 'sushi', 'ring', 'chocolate'], vera: ['cherry', 'pelmeni', 'pumpkinpie', 'cookie', 'bouquet'], timur: ['soda', 'burger', 'pizza', 'chocolate'], nika: ['strawberry', 'shake', 'icecream', 'cake'], olya: ['sandwich', 'borscht', 'salad', 'carrot'], yuki: ['sushi', 'bubbletea', 'onigiri', 'dango', 'ramen'], alisa: ['bouquet', 'rose', 'chocolate'], max: ['onigiri', 'bento', 'soda'], ru: ['soda', 'pizza', 'popcorn'], sofia: ['rosetea', 'cookie', 'tulip'] };
+function npcNews(n) {
+  if (n.ped) return false; const fr = friend(n.d.id), st = NPC_STORY[n.d.id];
+  if (fr.talk !== dayNum()) return true;
+  if (st) { if (st.topics.some(([lv], i) => fr.f >= lv && !fr.topics.includes(i))) return true; const ask = st.asks.findIndex((q, i) => !fr.asks.includes(i)); if (ask >= 0) { const [lv, item, cnt] = st.asks[ask]; if (fr.f >= lv && (state.inv[item] || 0) >= cnt) return true; } }
+  return false;
+}
+function npcLine(n) {
+  const fr = friend(n.d.id), pool = [...n.d.lines];
+  if (nightness > 0.6) pool.push('Уже так поздно… Звёзды сегодня красивые ✨', 'Не спится? Мне тоже 🌙', 'Ночной город — самый красивый 🌃');
+  if (weather === 'rain') pool.push('Ну и дождина! ☔ Хорошо, что вы зашли', 'Дождь — повод выпить что-нибудь тёплое ☕');
+  if (fr.f >= 4) pool.push('Как здорово, что вы зашли! 💕', 'Вы мои любимые гости 🥰');
+  if (fr.f >= 7) pool.push('Мы с вами уже как родные 💞', 'Без вас день был бы скучным');
+  return fill(pick(pool));
+}
 function commandNpc(n) {
   const a = selected; if (busyCheck(a)) return;
   if (n.ped) { n.pause = 3; const p = n.root.position, q = a.root.position; n.want = Math.atan2(q.x - p.x, q.z - p.z); n.speak(pick(PED_LINES)); a.busy = { type: 'wave', t: 0, dur: 1.2 }; sfx('pop'); return; }
@@ -2103,31 +2293,40 @@ function addFriend(n, v) {
   for (const th of [3, 6, 10]) if (fr.f >= th && !fr.got.includes(th) && n.d.rewards?.[th]) { fr.got.push(th); setTimeout(() => grantReward(n.d.rewards[th], n.d.name), 600); }
 }
 function openNpc(n) {
-  const fr = friend(n.d.id), today = dayNum();
-  const night = nightness > 0.6;
-  const line = fill(night && Math.random() < 0.4 ? pick(['Уже так поздно… Звёзды сегодня красивые ✨', 'Не спится? Мне тоже 🌙']) : pick(n.d.lines));
+  const today = dayNum(), line = npcLine(n);
   n.speak(line); sfx('pop');
   const p = n.root.position, q = selected.root.position; n.want = Math.atan2(q.x - p.x, q.z - p.z);
-  openSheet({ title: () => `${n.d.name}  ${hearts(friend(n.d.id).f)}`, render: body => {
-    const sp = document.createElement('div'); sp.className = 'speech'; sp.textContent = line; body.appendChild(sp);
+  openSheet({ title: () => `${n.d.name} · ${hearts(friend(n.d.id).f)}`, render: body => {
+    const fr = friend(n.d.id), st = NPC_STORY[n.d.id];
+    const sp = document.createElement('div'); sp.className = 'speech'; sp.textContent = n.lastLine || line; body.appendChild(sp);
+    const nxt = FR_TITLES.find(t => t[0] > fr.f);
     const lv = document.createElement('div'); lv.className = 'lvl'; lv.innerHTML = `<span>${frTitle(fr.f)}</span><div class="pb"><i style="width:${fr.f * 10}%"></i></div><span>${fr.f}/10</span>`; body.appendChild(lv);
-    tile(body, { e: '💬', n: 'Поболтать', s: fr.talk === today ? 'уже болтали сегодня' : '+1 💗', click: () => {
-      n.speak(fill(pick(n.d.lines))); quest('talk');
-      if (fr.talk !== today) { fr.talk = today; addFriend(n, 1); addStat(selected, 'fun', 8); floatAgent(selected, '💬'); }
+    const newTopics = st ? st.topics.filter(([l], i) => fr.f >= l && !fr.topics.includes(i)).length : 0;
+    const todo = [[fr.talk === today, 'Поболтать сегодня <b>+1💗</b>'], [fr.gift === today, `Подарить подарок <b>+2💗</b> (любимое <b>+3💗</b>: ${(NPC_LIKES[n.d.id] || []).map(k => ITEMS[k]?.emoji || '').join('')})`]];
+    if (st) todo.push([newTopics === 0, newTopics ? `Новые темы для разговора: <b>${newTopics}</b> (+1💗 каждая)` : 'Все открытые темы обсуждены']);
+    info(body, `${nxt ? `До «${nxt[1]}» осталось <b>${nxt[0] - fr.f}💗</b>` : 'Вы родные души 💞'}<br>${todo.map(([d, t]) => `${d ? '✅' : '⬜'} ${t}`).join('<br>')}`);
+    tile(body, { e: '💬', n: 'Поболтать', s: fr.talk === today ? 'новая фраза' : '+1 💗 сегодня', click: () => {
+      const l2 = npcLine(n); n.lastLine = l2; n.speak(l2); quest('talk');
+      const f2 = friend(n.d.id); if (f2.talk !== today) { f2.talk = today; addFriend(n, 1); addStat(selected, 'fun', 8); floatAgent(selected, '💬'); }
       save(); renderSheet();
     } });
     tile(body, { e: '🎁', n: 'Подарить', s: fr.gift === today ? 'уже дарили сегодня' : '+2 💗', dis: fr.gift === today, click: () => openGiftPicker(it => {
-      fr.gift = today; addFriend(n, 2); n.speak(`Ой, ${ITEMS[it].emoji}! Спасибо огромное! 💕`); quest('gift'); sfx('heart'); save(); openNpc(n);
+      const f2 = friend(n.d.id), loved = (NPC_LIKES[n.d.id] || []).includes(it);
+      f2.gift = today; addFriend(n, loved ? 3 : 2); n.lastLine = loved ? `Ааа, ${ITEMS[it].emoji}! Это же моё любимое! 😍` : `Ой, ${ITEMS[it].emoji}! Спасибо огромное! 💕`; n.speak(n.lastLine); quest('gift'); sfx('heart'); save(); openNpc(n);
     }) });
     const role = n.d.role;
-    if (role === 'barista') { tile(body, { e: '☕', n: 'Меню кафе', click: () => openCafe() }); tile(body, { e: '🧑‍🍳', n: 'Подработка', s: '+30🪙 −энергия', click: () => { closeSheet(); doWork(selected, 'cafe'); } }); }
+    if (role === 'barista') { tile(body, { e: '☕', n: 'Меню кафе', click: () => openCafe() }); tile(body, { e: '🧑‍🍳', n: 'Подработка', s: 'мини-игра · 🪙', click: () => { closeSheet(); doWork(selected, 'cafe'); } }); }
     if (role === 'florist') tile(body, { e: '🌷', n: 'Магазин цветов', click: () => openFlowers() });
     if (role === 'mall') tile(body, { e: '🛍', n: 'Магазины ТЦ', click: () => openMall() });
     if (role === 'market') tile(body, { e: '🛒', n: 'Купить продукты', click: () => openShopList('market') });
     if (role === 'sakura') tile(body, { e: '🏮', n: 'Купить', click: () => openShopList('sakura') });
-    if (role === 'icecream') tile(body, { e: '🍦', n: 'Купить мороженое', s: '🪙15', dis: state.coins < 15, click: () => { if (state.coins < 15) return; bumpCoins(-15); state.inv.icecream = (state.inv.icecream || 0) + 1; sfx('coin'); toast('🍦 в рюкзаке'); save(); } });
+    if (role === 'salon') tile(body, { e: '💇', n: 'Причёски', click: () => openSalon() });
+    if (role === 'gym') tile(body, { e: '🏋️', n: 'Тренировка', click: () => { closeSheet(); doGym(selected); } });
+    if (role === 'karaoke') tile(body, { e: '🎤', n: 'Спеть', click: () => { closeSheet(); doKaraoke(selected); } });
+    if (role === 'library') tile(body, { e: '📖', n: 'Почитать', click: () => { closeSheet(); doRead(selected); } });
+    if (role === 'icecream') tile(body, { e: '🍦', n: 'Купить мороженое', s: priceTag(15, 'truck'), dis: state.coins < price(15, 'truck'), click: () => { const pr = price(15, 'truck'); if (state.coins < pr) return; bumpCoins(-pr); state.inv.icecream = (state.inv.icecream || 0) + 1; sfx('coin'); toast('🍦 в рюкзаке'); save(); } });
     if (role === 'musician') tile(body, { e: '🎵', n: 'Послушать', s: 'вся семья +💗', click: () => { closeSheet(); sfx('melody'); for (const a of famHere()) { addStat(a, 'fun', 6); floatAgent(a, '🎵'); } n.speak('🎶🎶🎶'); } });
-    if (role === 'granny') tile(body, { e: '🍪', n: 'Угоститься', s: fr.treat === today ? 'завтра ещё' : 'раз в день', dis: fr.treat === today, click: () => { fr.treat = today; state.inv.cookie = (state.inv.cookie || 0) + 1; n.speak('Кушай, деточка 🍪'); toast('🍪 в рюкзаке'); save(); renderSheet(); } });
+    if (role === 'granny') tile(body, { e: '🍪', n: 'Угоститься', s: fr.treat === today ? 'завтра ещё' : 'раз в день', dis: fr.treat === today, click: () => { friend(n.d.id).treat = today; state.inv.cookie = (state.inv.cookie || 0) + 1; n.speak('Кушай, деточка 🍪'); toast('🍪 в рюкзаке'); save(); renderSheet(); } });
     npcExtras(body, n);
   } });
 }
@@ -2167,8 +2366,8 @@ function npcExtras(body, n) {
     const open = fr.f >= lv, heard = fr.topics.includes(i);
     const b = tile(body, { e: '', n: open ? q : `🔒 Откроется на ${lv}💗`, s: !open ? '' : heard ? 'слышали' : '✨ +1💗', lock: !open, click: () => {
       if (!open) return toast(`Подружитесь сильнее: нужно ${lv}💗`);
-      const sp = body.querySelector('.speech'); if (sp) sp.textContent = fill(a); n.speak(fill(a), 4);
-      if (!heard) { fr.topics.push(i); addFriend(n, 1); sfx('heart'); }
+      n.lastLine = fill(a); n.speak(fill(a), 4);
+      const f2 = friend(n.d.id); if (!f2.topics.includes(i)) { f2.topics.push(i); addFriend(n, 1); sfx('heart'); }
       save(); setTimeout(renderSheet, 50);
     } });
     b.classList.add('topic'); b.querySelector('.e').remove();
@@ -2182,7 +2381,7 @@ function npcExtras(body, n) {
     else {
       info(body, `${fill(text)}<br><span style="opacity:.75">У тебя: ${it.emoji} ${have}/${cnt} · награда: ${reward.coins ? '🪙' + reward.coins : ''} ${Object.keys(reward.items || {}).map(k => ITEMS[k].emoji).join('')}${reward.furn ? FURN[reward.furn].emoji : ''}</span>`);
       const b = document.createElement('button'); b.className = 'btn main'; b.style.gridColumn = '1/-1'; b.textContent = have >= cnt ? `Отдать ${it.emoji}×${cnt}` : `Нужно ещё ${cnt - have} ${it.emoji}`; b.disabled = have < cnt;
-      b.onclick = () => { state.inv[item] -= cnt; fr.asks.push(ask); grantReward({ ...reward, msg: 'Спасибо огромное! Ты лучше всех 💕' }, n.d.name); addFriend(n, 2); quest('talk'); n.speak('Спасибо!! 💕'); save(); renderSheet(); };
+      b.onclick = () => { state.inv[item] -= cnt; friend(n.d.id).asks.push(ask); grantReward({ ...reward, msg: 'Спасибо огромное! Ты лучше всех 💕' }, n.d.name); addFriend(n, 2); quest('talk'); n.speak('Спасибо!! 💕'); save(); renderSheet(); };
       body.appendChild(b);
     }
   }
@@ -2243,7 +2442,7 @@ function commandBug(bug) {
   a.goTo(ap, () => {
     const info = BUGS[bug.sp];
     a.busy = { type: 'net', t: 0, dur: Infinity };
-    mgTiming({ title: '🦋 Сачок наготове', emoji: info.emoji, waitMs: [400, 1100], hintWait: 'Подкрадываемся тихонько…', hintGo: 'Взмах! Жми в розовой зоне', zone: info.w >= 3 ? 0.28 : info.w >= 2 ? 0.2 : 0.14, speed: info.w >= 3 ? 1 : info.w >= 2 ? 1.3 : 1.6, onEnd: ok => {
+    mgTiming({ title: '🦋 Сачок наготове', emoji: info.emoji, scene: 'meadow', waitMs: [400, 1100], hintWait: 'Подкрадываемся тихонько…', hintGo: 'Взмах! Жми в розовой зоне', zone: info.w >= 3 ? 0.28 : info.w >= 2 ? 0.2 : 0.14, speed: info.w >= 3 ? 1 : info.w >= 2 ? 1.3 : 1.6, onEnd: ok => {
       a.busy = { type: 'net', t: 0, dur: 0.6 };
       if (ok) { state.inv[bug.sp] = (state.inv[bug.sp] || 0) + 1; const isNew = !state.dex[bug.sp]; state.dex[bug.sp] = true; floatAgent(a, info.emoji); toast(`${isNew ? '📖 Новое! ' : ''}Поймано: ${info.emoji} ${info.name}`); hapticOk(); quest('bug'); addStat(a, 'fun', 6); bug.remove(); save(); }
       else { bug.frozen = false; bug.ax += rnd(-4, 4); bug.az += rnd(-4, 4); toast('Улетела! 💨'); }
@@ -2351,7 +2550,8 @@ class Agent {
     const o = { ...this.def.outfits[this.outfit] };
     if (state.chars[this.id].hairColor) o.hair = state.chars[this.id].hairColor;
     if (bdayToday().includes(this.id) && !o.hat) o.hat = 'party';
-    this.model = this.def.kind === 'cat' ? makeCat(this.def, o) : makeHuman(this.def, o);
+    const hs = state.chars[this.id].hairStyle;
+    this.model = this.def.kind === 'cat' ? makeCat(this.def, o) : makeHuman(hs ? { ...this.def, hair: hs } : this.def, o);
     this.root.add(this.model.root);
     this.model.root.traverse(m => m.userData.agentId = this.id);
     const md = this.mood || 'happy'; this.mood = ''; this.setMood(md);
@@ -2518,7 +2718,7 @@ function doSleep(a) {
 function doFish(a, where) {
   const id = weighted(FISH_POOL[where]).id, rare = ['goldfish', 'koi'].includes(id) ? 2 : id === 'puffer' ? 1 : 0;
   a.busy = { type: 'fish', t: 0, dur: Infinity }; floatAgent(a, '🎣'); sfx('splash');
-  mgTiming({ title: '🎣 Рыбалка', emoji: '🎣', hintWait: 'Ждём поклёвку… не спеши 🤫', hintGo: '❗ Клюёт! Жми, когда стрелка в розовой зоне', zone: [0.26, 0.18, 0.12][rare], speed: [1, 1.35, 1.75][rare], onEnd: ok => {
+  mgTiming({ title: '🎣 Рыбалка', emoji: '🎣', scene: 'lake', catchEmoji: FISH[id].emoji, hintWait: 'Ждём поклёвку… не спеши 🤫', hintGo: '❗ Клюёт! Жми, когда стрелка в розовой зоне', zone: [0.26, 0.18, 0.12][rare], speed: [1, 1.35, 1.75][rare], onEnd: ok => {
     a.busy = null; addStat(a, 'fun', 5);
     if (ok) { const info = FISH[id], isNew = !state.dex[id]; state.inv[id] = (state.inv[id] || 0) + 1; state.dex[id] = true; floatAgent(a, info.emoji); toast(`${isNew ? '📖 Новое! ' : ''}Улов: ${info.emoji} ${info.name}`); hapticOk(); quest('fish'); save(); }
     else { floatAgent(a, '💦'); toast('Сорвалась… 💦'); sfx('splash'); }
@@ -2560,23 +2760,141 @@ function doWork(a, where) {
 let mgOn = false;
 function mgOpen(title) { mgOn = true; $('mgTitle').textContent = title; $('mgBody').innerHTML = ''; $('mg').classList.remove('hidden'); }
 function mgClose() { mgOn = false; $('mg').classList.add('hidden'); }
-function mgTiming({ title, emoji = '🎣', waitMs = [1200, 3200], zone = 0.24, speed = 1, hintWait, hintGo, onEnd }) {
+function mgTiming({ title, emoji = '🎣', waitMs = [1200, 3200], zone = 0.24, speed = 1, hintWait, hintGo, scene, catchEmoji, onEnd }) {
   mgOpen(title);
   const b = $('mgBody');
-  b.innerHTML = `<div class="mg-big" id="mgE">${emoji}</div><div class="mg-hint" id="mgH">${hintWait}</div><div class="mg-bar"><div class="mg-zone" id="mgZ"></div><div class="mg-needle" id="mgN"></div></div><button class="btn main" id="mgGo" style="width:100%;padding:14px;font-size:18px">Жми!</button>`;
+  b.innerHTML = (scene ? '<canvas id="mgCv" class="mg-cv" width="320" height="170"></canvas>' : `<div class="mg-big" id="mgE">${emoji}</div>`) + `<div class="mg-hint" id="mgH">${hintWait}</div><div class="mg-bar"><div class="mg-zone" id="mgZ"></div><div class="mg-needle" id="mgN"></div></div><button class="btn main" id="mgGo" style="width:100%;padding:14px;font-size:18px">Жми!</button>`;
   const zs = 0.08 + Math.random() * (0.84 - zone);
   $('mgZ').style.left = zs * 100 + '%'; $('mgZ').style.width = zone * 100 + '%';
-  let phase = 'wait', pos = 0, dir = 1, done = false;
-  const t0 = performance.now(), waitT = rnd(waitMs[0], waitMs[1]); let last = t0, goT = 0;
-  const finish = ok => { if (done) return; done = true; $('mgH').textContent = ok ? '✨ Есть!' : $('mgH').textContent.startsWith('Рано') ? $('mgH').textContent : '💨 Мимо…'; $('mgE').className = ok ? 'mg-big ok-flash' : 'mg-big bad-flash'; sfx(ok ? 'catch' : 'error'); haptic(ok ? 'heavy' : 'light'); setTimeout(() => { mgClose(); onEnd(ok); }, 700); };
-  $('mgGo').onclick = () => { if (phase === 'wait') { $('mgH').textContent = 'Рано! Спугнули 😿'; finish(false); return; } finish(pos >= zs && pos <= zs + zone); };
+  const cvx = scene ? $('mgCv').getContext('2d') : null, E = $('mgE');
+  let phase = 'wait', pos = 0, dir = 1, done = false, closed = false, ok = false;
+  const t0 = performance.now(), waitT = rnd(waitMs[0], waitMs[1]) + (scene === 'lake' ? 800 : 0); let last = t0, phaseT = t0;
+  const finish = good => {
+    if (done) return; done = true; ok = good; phase = 'done'; phaseT = performance.now();
+    if (!$('mgH').textContent.startsWith('Рано')) $('mgH').textContent = good ? '✨ Есть!' : '💨 Мимо…';
+    if (E) E.className = good ? 'mg-big ok-flash' : 'mg-big bad-flash';
+    sfx(good ? 'catch' : 'error'); haptic(good ? 'heavy' : 'light');
+    setTimeout(() => { closed = true; mgClose(); onEnd(good); }, scene ? 1100 : 700);
+  };
+  $('mgGo').onclick = () => { if (done) return; if (phase === 'wait') { $('mgH').textContent = 'Рано! Спугнули 😿'; finish(false); return; } finish(pos >= zs && pos <= zs + zone); };
   const step = now => {
-    if (done) return; const dt = Math.min(0.05, (now - last) / 1000); last = now;
-    if (phase === 'wait') { $('mgE').style.transform = `translateY(${Math.sin(now / 180) * 5}px)`; if (now - t0 > waitT) { phase = 'go'; goT = now; $('mgH').textContent = hintGo; $('mgE').textContent = '❗' + emoji; $('mgE').style.transform = ''; haptic('heavy'); sfx('pop'); } }
-    else { pos += dir * dt * speed * 0.95; if (pos > 1) { pos = 1; dir = -1; } if (pos < 0) { pos = 0; dir = 1; } $('mgN').style.left = pos * 100 + '%'; if (now - goT > 4000) finish(false); }
+    if (closed) return; const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (!done) {
+      if (phase === 'wait') { if (E) E.style.transform = `translateY(${Math.sin(now / 180) * 5}px)`; if (now - t0 > waitT) { phase = 'go'; phaseT = now; $('mgH').textContent = hintGo; if (E) { E.textContent = '❗' + emoji; E.style.transform = ''; } haptic('heavy'); sfx('pop'); } }
+      else { pos += dir * dt * speed * 0.95; if (pos > 1) { pos = 1; dir = -1; } if (pos < 0) { pos = 0; dir = 1; } $('mgN').style.left = pos * 100 + '%'; if (now - phaseT > 4000) finish(false); }
+    }
+    if (cvx) (scene === 'lake' ? drawLake : drawMeadow)(cvx, { phase, t: Math.max(0, (now - t0) / 1000), tp: Math.max(0, (now - phaseT) / 1000), ok, emoji: catchEmoji || emoji });
     requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
+}
+function mgSky(x, W, H) { const n = nightness > 0.6; fsky(x, W, H, n ? '#1a0a2e' : '#ffd0e0', n ? '#3a1a4e' : '#ff9ec2'); if (n) { fstars(x, W, H, performance.now() / 1000, 30, 4, 0.4); x.fillStyle = '#fff3d6'; x.beginPath(); x.arc(270, 28, 13, 0, 7); x.fill(); } else fglow(x, 270, 30, 40, 'rgba(255,255,230,.7)'); return n; }
+function drawLake(x, s) {
+  const W = 320, H = 170, n = mgSky(x, W, 90);
+  x.fillStyle = n ? '#2a1438' : '#d96a98'; x.beginPath(); x.moveTo(0, 82); for (let i = 0; i <= 8; i++) x.lineTo(i * 40, 70 - Math.sin(i * 1.3) * 9 - (i % 2) * 5); x.lineTo(W, 84); x.lineTo(0, 84); x.fill();
+  for (let i = 0; i < 6; i++) { x.fillStyle = n ? '#1a0a24' : '#b84a7a'; x.beginPath(); x.moveTo(20 + i * 52, 80); x.lineTo(30 + i * 52, 56 - (i % 3) * 6); x.lineTo(40 + i * 52, 80); x.fill(); }
+  const g = x.createLinearGradient(0, 80, 0, H); g.addColorStop(0, n ? '#2a3a6a' : '#86d4ea'); g.addColorStop(1, n ? '#0e1834' : '#2a78a8'); x.fillStyle = g; x.fillRect(0, 80, W, H - 80);
+  x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 1.5; for (let i = 0; i < 14; i++) { const yy = 90 + i * 6, off = (s.t * 18 + i * 53) % (W + 30) - 30; x.beginPath(); x.moveTo(off, yy); x.lineTo(off + 16 + (i % 3) * 6, yy); x.stroke(); }
+  x.fillStyle = '#5aa05a'; x.beginPath(); x.moveTo(0, H); x.lineTo(0, 118); x.quadraticCurveTo(55, 114, 96, H); x.fill();
+  x.strokeStyle = '#3a7a3a'; x.lineWidth = 3; for (let i = 0; i < 6; i++) { x.beginPath(); x.moveTo(8 + i * 13, H); x.lineTo(12 + i * 13 + Math.sin(s.t * 2 + i) * 3, 110 - i * 2); x.stroke(); }
+  const tip = { x: 120, y: 46 }, tg = { x: 222, y: 112 }; let bxp = tg.x, byp = tg.y;
+  const castK = Math.min(1, s.t / 0.8), rodA = s.phase === 'wait' && s.t < 0.8 ? -0.6 + castK * 0.6 : s.phase === 'done' && s.ok ? -0.35 * Math.min(1, s.tp / 0.3) : s.phase === 'go' ? Math.sin(s.tp * 20) * 0.05 : 0;
+  const rx = 26, ry = H - 4, rl = Math.hypot(tip.x - rx, tip.y - ry), ra = Math.atan2(tip.y - ry, tip.x - rx) + rodA, tx = rx + Math.cos(ra) * rl, ty = ry + Math.sin(ra) * rl;
+  if (s.phase === 'wait' && s.t < 0.8) { bxp = tx + (tg.x - tx) * castK; byp = ty + (tg.y - ty) * castK - Math.sin(castK * Math.PI) * 55; }
+  else if (s.phase === 'wait') byp += Math.sin(s.t * 3) * 1.5;
+  else if (s.phase === 'go') { byp += 5 + Math.sin(s.tp * 25) * 3; for (let r = 0; r < 3; r++) { const rr = ((s.tp * 30) + r * 10) % 30; x.strokeStyle = `rgba(255,255,255,${1 - rr / 30})`; x.beginPath(); x.ellipse(tg.x, tg.y + 4, rr * 1.4, rr * 0.4, 0, 0, 7); x.stroke(); } x.fillStyle = 'rgba(20,30,50,.35)'; x.beginPath(); x.ellipse(tg.x - 12, tg.y + 16, 22, 6, 0, 0, 7); x.fill(); }
+  x.strokeStyle = '#3a2418'; x.lineWidth = 4; x.beginPath(); x.moveTo(rx, ry); x.lineTo(tx, ty); x.stroke(); x.fillStyle = '#141114'; x.beginPath(); x.arc(42, H - 22, 6, 0, 7); x.fill();
+  const caught = s.phase === 'done' && s.ok, k = caught ? Math.min(1, s.tp / 0.7) : 0;
+  if (caught) { bxp = tg.x + (tx - tg.x) * k; byp = tg.y + (ty + 30 - tg.y) * k - Math.sin(k * Math.PI) * 45; }
+  x.strokeStyle = 'rgba(255,255,255,.85)'; x.lineWidth = 1; x.beginPath(); x.moveTo(tx, ty); x.quadraticCurveTo((tx + bxp) / 2, Math.max(ty, byp) + 18, bxp, byp); x.stroke();
+  if (caught) { x.font = '30px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.save(); x.translate(bxp, byp + 10); x.rotate(Math.sin(s.tp * 18) * 0.4); x.fillText(s.emoji, 0, 0); x.restore(); }
+  else { x.fillStyle = '#fff'; x.beginPath(); x.arc(bxp, byp, 5, 0, 7); x.fill(); x.fillStyle = '#e8283f'; x.beginPath(); x.arc(bxp, byp - 1, 5, Math.PI, 0); x.fill(); }
+  if (s.phase === 'done' && !s.ok) for (let r = 0; r < 2; r++) { const rr = (s.tp * 40 + r * 14) % 40; x.strokeStyle = `rgba(255,255,255,${1 - rr / 40})`; x.beginPath(); x.ellipse(tg.x, tg.y + 4, rr * 1.4, rr * 0.4, 0, 0, 7); x.stroke(); }
+}
+function drawMeadow(x, s) {
+  const W = 320, H = 170; mgSky(x, W, 100);
+  x.fillStyle = '#7cc26a'; x.beginPath(); x.moveTo(0, 100); for (let i = 0; i <= 8; i++) x.lineTo(i * 40, 96 - Math.sin(i) * 5); x.lineTo(W, H); x.lineTo(0, H); x.fill();
+  const r = mulberry(12); for (let i = 0; i < 26; i++) { const fx = r() * W, fy = 110 + r() * 55; x.fillStyle = ['#ff6fa3', '#fff3f7', '#f5c542', '#cdb8ec'][i % 4]; x.beginPath(); x.arc(fx, fy, 3, 0, 7); x.fill(); }
+  x.strokeStyle = '#4f8a48'; x.lineWidth = 3; x.beginPath(); x.moveTo(222, H); x.lineTo(222, 120); x.stroke();
+  x.fillStyle = '#ff6fa3'; for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; x.beginPath(); x.arc(222 + Math.cos(a) * 9, 116 + Math.sin(a) * 9, 7, 0, 7); x.fill(); } x.fillStyle = '#f5c542'; x.beginPath(); x.arc(222, 116, 6, 0, 7); x.fill();
+  let bx2, by2;
+  if (s.phase === 'wait') { bx2 = 170 + Math.sin(s.t * 1.3) * 70; by2 = 60 + Math.sin(s.t * 2.7) * 22; }
+  else if (s.phase === 'go') { bx2 = 222; by2 = 104; }
+  else if (s.ok) { bx2 = 222; by2 = 104; }
+  else { bx2 = 222 + s.tp * 120; by2 = 104 - s.tp * 140; }
+  const flap = Math.abs(Math.sin(s.t * (s.phase === 'go' ? 8 : 18)));
+  x.save(); x.translate(bx2, by2); x.scale(0.5 + flap * 0.5, 1); x.font = '26px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(s.emoji, 0, 0); x.restore();
+  const swing = s.phase === 'done' ? Math.min(1, s.tp / 0.25) : 0, hx = 70 + (205 - 70) * swing, hy = 70 + (100 - 70) * swing;
+  x.strokeStyle = '#7a4a3a'; x.lineWidth = 5; x.beginPath(); x.moveTo(20, H); x.lineTo(hx - 18, hy + 14); x.stroke();
+  x.strokeStyle = '#fff3f7'; x.lineWidth = 3; x.beginPath(); x.ellipse(hx, hy, 24, 16, -0.4, 0, 7); x.stroke(); x.fillStyle = 'rgba(255,255,255,.25)'; x.fill();
+}
+const shuffle = arr => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
+const POT = ['ramen', 'borscht', 'miso', 'curry', 'pelmeni', 'rosetea', 'bibimbap'], PAN = ['omelet', 'blini', 'gyoza', 'tempura', 'burger', 'fries', 'yakitori', 'wok', 'carbonara', 'pizza', 'pumpkinpie', 'sandwich'];
+function mgCook(id, onEnd) {
+  const d = DISHES[id], vessel = POT.includes(id) ? 'pot' : PAN.includes(id) ? 'pan' : 'board';
+  mgOpen(`${d.emoji} ${d.name}`);
+  const need = []; for (const [k, n] of Object.entries(d.r)) for (let i = 0; i < n; i++) need.push(k);
+  const decoys = shuffle(['egg', 'flour', 'meat', 'chicken', 'tofu', 'nori', 'cheese', 'honey', 'carrot', 'tomato', 'potato', 'cabbage', 'rice', 'milk', 'shrimp', 'noodles'].filter(k => !d.r[k])).slice(0, 2);
+  const opts = shuffle([...new Set(need), ...decoys]);
+  const remaining = need.slice(), added = []; let mistakes = 0, phase = 'add', stir = 0, done = false, closed = false, phaseT = performance.now(), stars = 3, spoon = 0;
+  const target = vessel === 'board' ? 8 : 10, limit = 7;
+  const b = $('mgBody');
+  b.innerHTML = `<canvas id="mgCv" class="mg-cv" width="320" height="170"></canvas><div class="mg-hint" id="mgH">Добавь ингредиенты: ${need.map(k => ITEMS[k].emoji).join(' ')}</div><div class="mg-grid" id="mgOpts">${opts.map(k => `<button data-k="${k}">${ITEMS[k].emoji}</button>`).join('')}</div><button class="btn main hidden" id="mgStir" style="width:100%;padding:14px;font-size:18px;margin-top:8px">${vessel === 'board' ? '🔪 Нарезать!' : '🥄 Помешивать!'}</button><div class="mg-timer" style="margin-top:8px"><i id="mgT" style="width:100%"></i></div>`;
+  const cvx = $('mgCv').getContext('2d');
+  const finish = slow => {
+    if (done) return; done = true; phase = 'done'; phaseT = performance.now();
+    stars = clamp(3 - mistakes - (slow ? 1 : 0), 1, 3);
+    $('mgH').innerHTML = `${'⭐'.repeat(stars)}${'☆'.repeat(3 - stars)} Готово!`; $('mgStir').classList.add('hidden'); sfx('harvest'); hapticOk();
+    setTimeout(() => { closed = true; mgClose(); onEnd(stars); }, 1300);
+  };
+  b.querySelectorAll('#mgOpts button').forEach(btn => btn.onclick = () => {
+    if (phase !== 'add') return; const k = btn.dataset.k, i = remaining.indexOf(k);
+    if (i >= 0) { remaining.splice(i, 1); added.push({ e: ITEMS[k].emoji, t: performance.now(), x: rnd(-34, 34), y: rnd(-6, 8), r: rnd(-0.6, 0.6) }); sfx('pop'); haptic();
+      $('mgH').textContent = remaining.length ? `Ещё: ${remaining.map(q => ITEMS[q].emoji).join(' ')}` : '';
+      if (!remaining.length) { phase = 'stir'; phaseT = performance.now(); $('mgOpts').classList.add('hidden'); $('mgStir').classList.remove('hidden'); $('mgH').textContent = vessel === 'board' ? 'Нарезай! Жми быстрее 🔪' : 'Помешивай! Жми быстрее 🥄'; }
+    } else { mistakes++; sfx('error'); btn.classList.remove('bad-flash'); void btn.offsetWidth; btn.classList.add('bad-flash'); $('mgH').textContent = `Не то! ${ITEMS[k].emoji} не нужен в «${d.name}»`; }
+  });
+  $('mgStir').onclick = () => { if (phase !== 'stir') return; stir++; spoon += 1; haptic(); sfx('pop'); if (stir >= target) finish((performance.now() - phaseT) / 1000 > limit); };
+  const step = now => {
+    if (closed) return;
+    if (phase === 'stir') { const el = (now - phaseT) / 1000; $('mgT').style.width = Math.max(0, 100 - el / limit * 100) + '%'; if (el > limit + 3) finish(true); }
+    drawKitchen(cvx, { vessel, added, phase, stir, target, t: now / 1000, tp: Math.max(0, (now - phaseT) / 1000), spoon, dish: d.emoji, now });
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+function drawKitchen(x, s) {
+  const W = 320, H = 170, cx = 160, cy = 108;
+  x.fillStyle = '#f4c6d4'; x.fillRect(0, 0, W, H);
+  x.fillStyle = 'rgba(255,255,255,.35)'; for (let i = 0; i < 10; i++) for (let j = 0; j < 4; j++) x.fillRect(i * 32 + (j % 2) * 16, j * 22, 28, 18);
+  x.fillStyle = '#2a1a22'; x.fillRect(0, 128, W, 42); x.fillStyle = '#3a2830'; x.fillRect(0, 124, W, 8);
+  if (s.vessel !== 'board') { const gl = 0.5 + Math.sin(s.t * 6) * 0.15; fglow(x, cx, 132, 70, `rgba(255,80,40,${gl})`); x.fillStyle = '#141114'; x.beginPath(); x.ellipse(cx, 130, 62, 10, 0, 0, 7); x.fill(); }
+  if (s.vessel === 'pan') {
+    x.fillStyle = '#3a3a44'; x.beginPath(); x.ellipse(cx, cy + 10, 70, 22, 0, 0, 7); x.fill(); x.fillStyle = '#22222a'; x.beginPath(); x.ellipse(cx, cy + 6, 62, 17, 0, 0, 7); x.fill();
+    x.fillStyle = '#2a1a12'; x.beginPath(); x.roundRect(cx + 66, cy + 2, 70, 10, 5); x.fill();
+  } else if (s.vessel === 'pot') {
+    x.fillStyle = '#9aa0ae'; x.beginPath(); x.roundRect(cx - 58, cy - 34, 116, 64, 10); x.fill(); x.fillStyle = '#7a8090'; x.beginPath(); x.ellipse(cx, cy - 34, 58, 12, 0, 0, 7); x.fill();
+    x.fillStyle = s.phase === 'add' && !s.added.length ? '#5a6070' : '#e8a05a'; x.beginPath(); x.ellipse(cx, cy - 32, 52, 9, 0, 0, 7); x.fill();
+    for (const sd of [-1, 1]) { x.fillStyle = '#5a6070'; x.fillRect(cx + sd * 64 - 6, cy - 22, 12, 8); }
+  } else {
+    x.fillStyle = '#b07848'; x.beginPath(); x.roundRect(cx - 80, cy - 10, 160, 40, 10); x.fill(); x.fillStyle = '#c98f5a'; x.beginPath(); x.roundRect(cx - 76, cy - 8, 152, 32, 8); x.fill();
+  }
+  const baseY = s.vessel === 'pot' ? cy - 34 : s.vessel === 'pan' ? cy + 4 : cy + 4;
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  if (s.phase !== 'done') for (const a of s.added) {
+    const k = clamp((s.now - a.t) / 350, 0, 1), yy = -30 + (baseY + a.y + 30) * k, wob = s.phase === 'stir' ? Math.sin(s.t * 10 + a.x) * 4 : 0;
+    x.save(); x.translate(cx + a.x + wob, yy); x.rotate(a.r + (s.phase === 'stir' && s.vessel !== 'board' ? s.spoon * 0.3 : 0)); x.font = `${s.vessel === 'pot' ? 20 : 24}px sans-serif`; x.fillText(a.e, 0, 0); x.restore();
+  }
+  if (s.phase === 'stir' || s.phase === 'done') {
+    if (s.vessel === 'pot') { x.strokeStyle = 'rgba(255,255,255,.6)'; x.lineWidth = 3; for (let i = 0; i < 3; i++) { const sx = cx - 30 + i * 30, ph2 = (s.t * 1.5 + i * 0.3) % 1; x.beginPath(); x.moveTo(sx, cy - 44 - ph2 * 40); x.quadraticCurveTo(sx + 10, cy - 54 - ph2 * 40, sx, cy - 64 - ph2 * 40); x.stroke(); } }
+    if (s.vessel === 'pan') { x.fillStyle = 'rgba(255,240,200,.8)'; for (let i = 0; i < 8; i++) { const a = (s.t * 7 + i) % 1; x.beginPath(); x.arc(cx - 50 + i * 14, cy - a * 30, 2 + a * 2, 0, 7); x.fill(); } }
+  }
+  if (s.phase === 'stir') {
+    if (s.vessel === 'board') { const up = (s.stir % 2) * 20; x.save(); x.translate(cx + 10, cy - 40 - up); x.rotate(-0.4); x.fillStyle = '#d9dde6'; x.fillRect(-4, -30, 34, 12); x.fillStyle = '#141114'; x.fillRect(-26, -28, 22, 8); x.restore(); }
+    else { const a = s.spoon * 0.9 + s.tp * 0.5; x.save(); x.translate(cx + Math.cos(a) * 26, baseY + Math.sin(a) * 6); x.rotate(-0.5); x.fillStyle = '#c98f5a'; x.fillRect(-3, -60, 6, 60); x.beginPath(); x.ellipse(0, 0, 9, 6, 0, 0, 7); x.fill(); x.restore(); }
+    x.fillStyle = 'rgba(26,8,17,.7)'; x.beginPath(); x.roundRect(10, 10, 100, 14, 7); x.fill(); x.fillStyle = '#ff6fa3'; x.beginPath(); x.roundRect(12, 12, 96 * Math.min(1, s.stir / s.target), 10, 5); x.fill();
+  }
+  if (s.phase === 'done') { const k = Math.min(1, s.tp / 0.4); fglow(x, cx, baseY - 4, 60 * k, 'rgba(255,255,220,.8)'); x.save(); x.translate(cx, baseY - 6); x.scale(k, k); x.font = '52px sans-serif'; x.fillText(s.dish, 0, 0); x.restore(); for (let i = 0; i < 6; i++) { const a = i / 6 * 7 + s.t; x.font = '14px sans-serif'; x.fillText('✨', cx + Math.cos(a) * 60 * k, baseY - 6 + Math.sin(a) * 30 * k); } }
 }
 function mgBarista(onEnd) {
   mgOpen('☕ Подработка бариста');
@@ -2687,7 +3005,7 @@ function commandInter(it) {
 }
 function select(a, quiet) {
   if (selected === a) return;
-  if (a.remote) { toast(`${nm(a.id)} сейчас управляет ${fem(a, 'сама', 'сам')} 💕 Тапни по ${fem(a, 'ней', 'нему')}, чтобы обнять`); return; }
+  if (a.remote && !a.remote.pet) { toast(`${nm(a.id)} сейчас управляет ${fem(a, 'сама', 'сам')} 💕 Тапни по ${fem(a, 'ней', 'нему')}, чтобы обнять`); return; }
   selected = a; state.selected = a.id; a.target = null; updateCards(); if (quiet) return; haptic(); floatAgent(a, '✨');
   const cc = cards[a.id].c; cc.classList.remove('bump'); void cc.offsetWidth; cc.classList.add('bump');
 }
@@ -2727,6 +3045,93 @@ function openTravel() {
     for (const [id, sub] of places) { if (id === L.id) continue; const lc = LOCS[id]; tile(body, { e: lc.icon, n: lc.name, s: sub, click: () => travel(id) }); }
     if (!['island', 'home', 'park', 'city'].includes(L.id)) info(body, `Сейчас ты в «${L.name}». Выйти обратно на улицу — через 🚪 у входа.`);
   } });
+}
+
+// ---- city activities ----
+const HAIRSTYLES = [['long', 'Длинные', '👩'], ['bob', 'Каре', '💁'], ['bun', 'Пучок', '🍡'], ['messy', 'Лохматые', '🦁'], ['short', 'Короткие', '🙂'], ['cap', 'С кепкой', '🧢'], ['granny', 'Ретро-пучок', '👵']];
+function openSalon() {
+  const a = selected;
+  if (a.def.kind !== 'human') return toast('Котика не стригут — он сфинкс 😹');
+  openSheet({ title: `💇 Салон Glam: ${nm(a.id)}`, tabs: [{ key: 'style', label: '✂️ Причёска' }, { key: 'color', label: '🎨 Цвет' }], render: (body, tab) => {
+    const sc = state.chars[a.id], cur = sc.hairStyle || a.def.hair;
+    if (tab === 'style') for (const [k, n, e] of HAIRSTYLES) tile(body, { e, n, s: cur === k ? 'сейчас' : priceTag(30, 'salon'), sel: cur === k, dis: cur !== k && state.coins < price(30, 'salon'), click: () => { if (cur === k) return; const pr = price(30, 'salon'); if (state.coins < pr) return toast('Не хватает монеток 🪙'); bumpCoins(-pr); sc.hairStyle = k === a.def.hair ? '' : k; a.outfitLock = Date.now() + 15000; a.build(); sparkle(a); drawPortrait(a.id); addStat(a, 'fun', 12); quest('mall'); sfx('heart'); save(); renderSheet(); } });
+    if (tab === 'color') { tile(body, { e: '↩️', n: 'Как в наряде', sel: !sc.hairColor, click: () => { sc.hairColor = ''; a.build(); drawPortrait(a.id); save(); renderSheet(); } }); for (const c of HAIR_COLORS) tile(body, { sw: c, n: '', s: priceTag(20, 'salon'), sel: sc.hairColor === c, click: () => { const pr = price(20, 'salon'); if (state.coins < pr) return toast('Не хватает монеток 🪙'); bumpCoins(-pr); sc.hairColor = c; a.outfitLock = Date.now() + 15000; a.build(); sparkle(a); drawPortrait(a.id); save(); renderSheet(); } }); }
+  } });
+}
+function doGym(a) {
+  if (a.def.kind === 'cat') { a.busy = { type: 'happy', t: 0, dur: 1.2 }; floatAgent(a, '😼💪'); return toast('Котик пробежал по беговой дорожке 🐾'); }
+  if (a.stats.energy < 15) return toast(`${nm(a.id)} слишком ${fem(a, 'устала', 'устал')} для тренировки 😴`);
+  a.busy = { type: 'work', t: 0, dur: Infinity };
+  mgGym(reps => { a.busy = null; addStat(a, 'fun', Math.min(30, 5 + reps)); addStat(a, 'energy', -12); addStat(a, 'hunger', -8); floatAgent(a, '💪'); toast(`Отличная тренировка! 💪 ×${reps}`); quest('sport'); save(); });
+}
+function doKaraoke(a) {
+  a.busy = { type: a.def.kind === 'cat' ? 'happy' : 'dance', t: 0, dur: Infinity };
+  mgRhythm(score => { a.busy = null; const fun = Math.min(30, 6 + score); for (const f of famHere()) { if (f.remote) continue; addStat(f, 'fun', f === a ? fun : Math.round(fun / 2)); floatAgent(f, '👏'); } if (score) bumpCoins(score * 2); toast(score ? `Браво! 🎤 ${score} нот, чаевые +${score * 2}🪙` : 'Ничего, в следующий раз споёшь лучше 🎤'); quest('sing'); save(); });
+}
+const POEMS = [
+  'Под чёрным кружевом ночи\nдва сердца стучат в унисон.\nИ даже луна, между прочим,\nглядит на них, как в сон. 🖤',
+  'Розовый котик крадётся по крышам,\nловит лунный свет на усы.\nА мы его видим и слышим —\nи нет в мире лучше красы. 🐈',
+  'Если на улице дождик и хмурь —\nзаварим какао, укроемся пледом.\nВдвоём не страшна никакая буря,\nвдвоём даже ливень — победа. ☔',
+  'Сакура шепчет: «Весна — навсегда»,\nлепестки опускаются в руки.\nТам, где ты — расцветают года,\nи не бывает разлуки. 🌸',
+  'Малышка спит, обняв зайчонка,\nи видит розовые сны.\nВ них пахнет мёдом и печёнкой… \nшучу — клубникою весны 🍓',
+  'Город мигает огнями неона,\nкаблуки отбивают ритм.\nМы танцуем под звуки винила,\nи сердце, как песня, звенит. 🎶',
+  'Я бы связал(а) тебе свитер из звёзд,\nсплёл бы венок из рассвета.\nНо проще — сказать тебе всерьёз:\nты — моё вечное лето. 💕',
+  'Книга закрыта, но сказка жива:\nв ней остров, котик и двое.\nИ если кончатся вдруг слова —\nостанется самое главное. 📖',
+];
+function doRead(a) {
+  if (a.def.kind === 'cat') { a.busy = { type: 'happy', t: 0, dur: 1.2 }; return toast('Котик уснул на раскрытой книге 😹📚'); }
+  a.busy = { type: 'read', t: 0, dur: 3, done: () => addStat(a, 'fun', 10) }; addStat(a, 'energy', 4);
+  const today = dayNum(), bonus = state.daily.readDay !== today; if (bonus) { state.daily.readDay = today; const sd = pick(['rose', 'tulip', 'sunflower', 'strawberry']); state.seeds[sd] = (state.seeds[sd] || 0) + 2; setTimeout(() => toast(`📚 В книге была закладка — семена ${CROPS[sd].emoji}×2!`), 900); }
+  quest('read'); save();
+  openSheet({ title: '📖 Книга стихов', render: body => { const d = document.createElement('div'); d.className = 'letter'; d.textContent = pick(POEMS); body.appendChild(d); tile(body, { e: '📖', n: 'Ещё одно', click: () => renderSheet() }); } });
+}
+const loadAlbum = () => { try { return JSON.parse(localStorage.getItem('gf_album') || '[]'); } catch (e) { return []; } };
+function takePhoto(a) {
+  const fam2 = famHere().filter(f => !f.remote);
+  fam2.forEach((f, k) => { f.target = null; f.root.position.set(28.5 + (k - (fam2.length - 1) / 2) * 1.1, 0, 1.6); f.want = 0; f.heading = 0; f.root.rotation.y = 0; f.busy = { type: k % 2 ? 'wave' : 'happy', t: 0, dur: 1.8 }; });
+  toast('📸 Улыбочку!'); sfx('pop');
+  setTimeout(() => {
+    renderer.render(scene, camera);
+    const src = renderer.domElement, W = 360, H = Math.round(W * src.height / src.width), c = document.createElement('canvas'); c.width = W; c.height = H + 46;
+    const x = c.getContext('2d'); x.fillStyle = '#fff3f7'; x.fillRect(0, 0, W, H + 46); x.drawImage(src, 8, 8, W - 16, H - 16);
+    x.fillStyle = '#2a0f1e'; x.font = '900 17px Nunito, sans-serif'; x.textAlign = 'center'; x.fillText(`🖤 ${nm('mom')} & ${nm('dad')} · ${new Date().toLocaleDateString('ru-RU')}`, W / 2, H + 26);
+    const album = loadAlbum(); album.unshift(c.toDataURL('image/jpeg', 0.7)); while (album.length > 12) album.pop();
+    for (let tries = 0; tries < 6; tries++) { try { localStorage.setItem('gf_album', JSON.stringify(album)); break; } catch (e) { album.pop(); } }
+    const fl = document.createElement('div'); fl.className = 'flash'; $('hud').appendChild(fl); setTimeout(() => fl.remove(), 650);
+    sfx('coin'); quest('photo'); toast('📸 Фото в альбоме: ☰ → 📸'); for (const f of fam2) addStat(f, 'fun', 8);
+  }, 1000);
+}
+function mgGym(onEnd) {
+  mgOpen('🏋️ Тренировка');
+  const T = 8; let reps = 0, done = false; const t0 = performance.now();
+  $('mgBody').innerHTML = `<div class="mg-timer"><i id="mgT"></i></div><div class="mg-hint">Жми как можно быстрее! 💪</div><div class="mg-big" id="mgO">🏋️</div><div class="mg-score" id="mgS">Повторов: 0</div><button class="btn main" id="mgGo" style="width:100%;padding:18px;font-size:20px;margin-top:8px">💪 Жим!</button>`;
+  $('mgGo').onclick = () => { if (done) return; reps++; haptic(); if (reps % 3 === 0) sfx('pop'); $('mgS').textContent = `Повторов: ${reps}`; $('mgO').style.transform = `translateY(${reps % 2 ? -14 : 0}px) scale(${reps % 2 ? 1.1 : 1})`; };
+  const step = now => { if (done) return; const t = (now - t0) / 1000; $('mgT').style.width = Math.max(0, 100 - t / T * 100) + '%'; if (t >= T) { done = true; $('mgO').textContent = '🏆'; $('mgS').textContent = `Итог: ${reps} повторов!`; sfx('harvest'); setTimeout(() => { mgClose(); onEnd(reps); }, 1200); return; } requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+function mgRhythm(onEnd) {
+  mgOpen('🎤 Караоке');
+  const T = 22, H = 230, hitY = H - 40, speed = 150, notes = []; let score = 0, combo = 0, done = false, nextSpawn = 0.6; const t0 = performance.now(); let last = t0;
+  const icons = ['🎵', '🎶', '💖'], tones = [72, 76, 79];
+  $('mgBody').innerHTML = `<div class="mg-timer"><i id="mgT"></i></div><div class="mg-hint" id="mgH">Жми, когда нота на розовой линии!</div><div class="rh" id="rh"><div class="lane"></div><div class="lane"></div><div class="lane"></div><div class="hit"></div></div><div class="mg-row" id="rhB">${icons.map((e, i) => `<button data-l="${i}" style="background:${['#c2183f', '#7a3ab0', '#ff6fa3'][i]}">${e}</button>`).join('')}</div><div class="mg-score" id="mgS">Счёт: 0</div>`;
+  const rh = $('rh');
+  const press = l => {
+    if (done) return; haptic();
+    const n = notes.find(q => !q.hit && q.l === l && Math.abs(q.y - hitY) < 30);
+    if (n) { n.hit = true; n.el.textContent = '✨'; setTimeout(() => n.el.remove(), 200); score++; combo++; if (AC && state.settings.sfx) tone(midi(tones[l] + (combo % 4) * 2), AC.currentTime, 0.35, 'sine', 0.6); $('mgH').textContent = combo > 2 ? `Комбо ×${combo}! 🔥` : 'Отлично! 🎤'; }
+    else { combo = 0; sfx('error'); $('mgH').textContent = 'Мимо 😅'; }
+    $('mgS').textContent = `Счёт: ${score}`;
+  };
+  $('rhB').querySelectorAll('button').forEach(b => b.onclick = () => press(+b.dataset.l));
+  const step = now => {
+    if (done) return; const dt = Math.min(0.05, (now - last) / 1000); last = now; const t = (now - t0) / 1000;
+    $('mgT').style.width = Math.max(0, 100 - t / T * 100) + '%';
+    if (t > nextSpawn && t < T - 1.6) { nextSpawn = t + rnd(0.45, 0.8); const l = Math.floor(Math.random() * 3), el = document.createElement('div'); el.className = 'note'; el.textContent = icons[l]; el.style.left = (l * 33.33) + '%'; rh.appendChild(el); notes.push({ l, y: -20, el, hit: false }); }
+    for (const n of notes) { if (n.hit) continue; n.y += speed * dt; n.el.style.top = n.y + 'px'; if (n.y > H + 20) { n.hit = true; n.el.remove(); combo = 0; } }
+    if (t >= T) { done = true; $('mgH').textContent = `🎉 Финал! ${score} нот`; sfx('harvest'); setTimeout(() => { mgClose(); onEnd(score); }, 1300); return; }
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
 }
 
 // ================= time & weather =================
@@ -2788,7 +3193,7 @@ const QPOOL = [
   { t: 'city', n: 1, txt: 'Съезди в город' }, { t: 'park', n: 1, txt: 'Погуляй в парке' }, { t: 'work', n: 1, txt: 'Сходи на работу' },
   { t: 'talk', n: 3, txt: 'Поболтай с жителями' }, { t: 'water', n: 3, txt: 'Полей грядки' }, { t: 'dance', n: 1, txt: 'Потанцуйте вместе' },
   { t: 'plant', n: 3, txt: 'Посади семена' }, { t: 'sell', n: 5, txt: 'Продай вещи' }, { t: 'kiss', n: 1, txt: 'Поцелуй {mom} и {dad} 💋' },
-  { t: 'gift', n: 1, txt: 'Подари подарок' }, { t: 'mall', n: 1, txt: 'Купи что-нибудь в ТЦ или сходи в кино' }, { t: 'cook', n: 2, txt: 'Приготовь блюда' },
+  { t: 'gift', n: 1, txt: 'Подари подарок' }, { t: 'mall', n: 1, txt: 'Купи что-нибудь в ТЦ или сходи в кино' }, { t: 'cook', n: 2, txt: 'Приготовь блюда' }, { t: 'sport', n: 1, txt: 'Сходи в спортзал' }, { t: 'sing', n: 1, txt: 'Спой в караоке' }, { t: 'photo', n: 1, txt: 'Сделай семейное фото' }, { t: 'read', n: 1, txt: 'Почитай в библиотеке' },
 ];
 function checkDaily() {
   const today = todayKey();
@@ -2921,12 +3326,12 @@ function drawPortrait(id) {
     x.beginPath(); x.roundRect(12, 24, 72, 62, 14); x.fill();
     x.save(); x.translate(12, 24); x.scale(72 / 256, 62 / 256); drawFace(x, 'cat', a.mood); x.restore();
   } else {
-    x.fillStyle = hair; if (a.def.hair === 'long') x.fillRect(10, 20, 76, 76);
+    x.fillStyle = hair; if ((state.chars[id].hairStyle || a.def.hair) === 'long') x.fillRect(10, 20, 76, 76);
     x.fillStyle = SKIN; x.beginPath(); x.roundRect(16, 22, 64, 62, 12); x.fill();
     x.save(); x.translate(16, 24); x.scale(64 / 256, 60 / 256); drawFace(x, a.def.face, a.mood); x.restore();
     x.fillStyle = hair; x.beginPath(); x.roundRect(12, 10, 72, 24, 10); x.fill();
-    if (a.def.hair === 'messy') for (let k = 0; k < 6; k++) { x.beginPath(); x.arc(18 + k * 12, 14 + (k % 2) * 6, 9, 0, Math.PI * 2); x.fill(); }
-    if (a.def.hair === 'bun') { x.beginPath(); x.arc(48, 8, 12, 0, Math.PI * 2); x.fill(); x.fillStyle = '#f59ab8'; x.fillRect(22, 30, 14, 4); }
+    if ((state.chars[id].hairStyle || a.def.hair) === 'messy') for (let k = 0; k < 6; k++) { x.beginPath(); x.arc(18 + k * 12, 14 + (k % 2) * 6, 9, 0, Math.PI * 2); x.fill(); }
+    if ((state.chars[id].hairStyle || a.def.hair) === 'bun') { x.beginPath(); x.arc(48, 8, 12, 0, Math.PI * 2); x.fill(); x.fillStyle = '#f59ab8'; x.fillRect(22, 30, 14, 4); }
   }
   x.restore();
 }
@@ -2986,7 +3391,7 @@ function openDress() {
       const have = state.unlocked[a.id].includes(k);
       tile(body, { e: have ? o.emoji : '🔒', n: o.label, s: have ? '' : o.gift ? 'подарок на ДР' : `бутик ТЦ · 🪙${o.price}`, sel: a.outfit === k, lock: !have, click: () => {
         if (!have) return toast(o.gift ? 'Этот наряд — подарок на день рождения 🎂' : 'Купи его в бутике ТЦ «Galleria Rosa» в городе 🛍');
-        if (a.outfit === k) return; a.outfit = k; a.build(); sparkle(a); hapticOk(); addStat(a, 'fun', 5); save(); renderSheet();
+        if (a.outfit === k) return; a.outfit = k; a.outfitLock = Date.now() + 15000; state.chars[a.id].outfit = k; a.build(); sparkle(a); hapticOk(); addStat(a, 'fun', 5); save(); renderSheet();
       } });
     }
     if (tab === 'hair') {
@@ -3091,12 +3496,13 @@ function cook(a, id) {
   if (!a.def.adult) return toast(a.def.kind === 'cat' ? 'Котик только пробует 😹' : `${nm('kid')} рано к плите 🙂 Пусть готовят взрослые`);
   const d = DISHES[id];
   for (const [k, n] of Object.entries(d.r)) state.inv[k] -= n;
-  closeSheet(); cooking = true; floatAgent(a, '🔥'); sfx('plant');
-  let steam = 0;
-  a.busy = { type: 'cook', t: 0, dur: 3, tick: dt => { if ((steam += dt) > 0.7) { steam = 0; floatAt(new THREE.Vector3(8.95, 1.8, -4.4), pick(['💨', '♨️', '✨'])); } }, done: () => {
-    cooking = false; state.inv[id] = (state.inv[id] || 0) + 1; const isNew = !state.cooked[id]; state.cooked[id] = true;
-    floatAgent(a, d.emoji); toast(`${isNew ? '📖 Новый рецепт! ' : ''}Готово: ${d.emoji} ${d.name}`); sfx('harvest'); hapticOk(); quest('cook'); addStat(a, 'fun', 6); save();
-  } };
+  closeSheet(); cooking = true; a.busy = { type: 'cook', t: 0, dur: Infinity }; save();
+  mgCook(id, stars => {
+    cooking = false; a.busy = null;
+    const extra = stars === 3 && Math.random() < 0.4 ? 1 : 0;
+    state.inv[id] = (state.inv[id] || 0) + 1 + extra; const isNew = !state.cooked[id]; state.cooked[id] = true;
+    floatAgent(a, d.emoji); toast(`${isNew ? '📖 Новый рецепт! ' : ''}${'⭐'.repeat(stars)} ${d.emoji} ${d.name}${extra ? ' — получилось 2 порции!' : ''}`); quest('cook'); addStat(a, 'fun', 4 + stars * 2); save();
+  });
 }
 function openFlowers() {
   openSheet({ title: '🌷 Fleur', render: body => {
@@ -3125,7 +3531,7 @@ function openSeedPicker(i, a) {
   } });
 }
 function openMenu() {
-  openSheet({ title: '☰ Меню', tabs: [{ key: 'q', label: '📜 Задания' }, { key: 'coop', label: '👫 Вместе' }, { key: 'dex', label: '📖 Коллекция' }, { key: 'cal', label: '🎂' }, { key: 'set', label: '⚙️' }], render: (body, tab) => {
+  openSheet({ title: '☰ Меню', tabs: [{ key: 'q', label: '📜 Задания' }, { key: 'coop', label: '👫 Вместе' }, { key: 'dex', label: '📖 Коллекция' }, { key: 'cal', label: '🎂' }, { key: 'album', label: '📸' }, { key: 'set', label: '⚙️' }], render: (body, tab) => {
     if (tab === 'q') {
       info(body, `🌅 Серия входов: <b>${state.daily.streak}</b> ${plural(state.daily.streak, 'день', 'дня', 'дней')}. Заходи каждый день — награда растёт!`);
       for (const q of state.daily.quests) {
@@ -3182,6 +3588,11 @@ function openMenu() {
         const lv = document.createElement('button'); lv.className = 'btn'; lv.style.gridColumn = '1/-1'; lv.textContent = 'Выйти из общего острова'; lv.onclick = () => leaveFamily(); body.appendChild(lv);
       }
     }
+    if (tab === 'album') {
+      const al = loadAlbum();
+      if (!al.length) empty(body, 'Альбом пуст 📸<br>Фотобудка — в городе, справа на улице');
+      else { const g = document.createElement('div'); g.className = 'album'; al.forEach((src, i) => { const im = document.createElement('img'); im.src = src; im.onclick = () => openSheet({ title: '📸 Фото', render: b2 => { const big = document.createElement('img'); big.src = src; big.style.cssText = 'grid-column:1/-1;width:100%;border-radius:14px'; b2.appendChild(big); const dl = document.createElement('a'); dl.className = 'btn main'; dl.style.gridColumn = '1/-1'; dl.style.textAlign = 'center'; dl.href = src; dl.download = `goth-family-${i + 1}.jpg`; dl.textContent = '⬇️ Сохранить'; b2.appendChild(dl); const del = document.createElement('button'); del.className = 'btn'; del.style.gridColumn = '1/-1'; del.textContent = '🗑 Удалить'; del.onclick = () => { const a2 = loadAlbum(); a2.splice(i, 1); localStorage.setItem('gf_album', JSON.stringify(a2)); openMenu(); }; b2.appendChild(del); } }); g.appendChild(im); }); body.appendChild(g); }
+    }
     if (tab === 'set') {
       tile(body, { e: state.settings.music ? '🎵' : '🔇', n: 'Музыка', s: state.settings.music ? 'вкл' : 'выкл', click: () => { state.settings.music = !state.settings.music; initAudio(); applyVolumes(); save(); renderSheet(); } });
       tile(body, { e: state.settings.sfx ? '🔊' : '🔈', n: 'Звуки', s: state.settings.sfx ? 'вкл' : 'выкл', click: () => { state.settings.sfx = !state.settings.sfx; initAudio(); applyVolumes(); applyWeatherVis(); save(); renderSheet(); } });
@@ -3198,6 +3609,9 @@ $('mapBtn').onclick = () => { initAudio(); haptic(); openTravel(); };
 $('decorBtn').onclick = () => { initAudio(); haptic(); openDecor(); };
 document.querySelectorAll('#editbar button').forEach(b => b.onclick = () => { const e = b.dataset.e; if (e === 'add') return openDecorAdd(); if (e === 'exit') return exitDecor(); if (!edit) return; if (e === 'rot') { edit.r += Math.PI / 2; haptic(); } else if (e === 'ok') endEdit(true); else if (e === 'del') endEdit(true, true); else endEdit(false); });
 $('plClose').onclick = () => endFilm(false);
+$('plPlay').onclick = () => ctlToggle(); $('plBack').onclick = () => ctlSeek(-10, true); $('plFwd').onclick = () => ctlSeek(10, true);
+$('plSeek').addEventListener('pointerdown', () => $('plSeek').dragging = true); $('plSeek').addEventListener('pointerup', () => $('plSeek').dragging = false);
+$('plSeek').oninput = e => { if (film && !film.yt) ctlSeek(+e.target.value); }; $('plSeek').onchange = e => { $('plSeek').dragging = false; if (film?.yt) ctlSeek(+e.target.value); };
 $('plMini').onclick = () => { $('player').classList.toggle('mini'); $('plMini').textContent = $('player').classList.contains('mini') ? '⤢' : '🗗'; };
 document.querySelectorAll('.tool').forEach(b => b.onclick = () => {
   b.classList.remove('tap'); void b.offsetWidth; b.classList.add('tap');
@@ -3235,6 +3649,7 @@ function updKeys() {
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.ctrlKey || e.metaKey) return;
   const k = e.key.toLowerCase(); initAudio();
+  if (film && !$('player').classList.contains('mini')) { if (k === ' ' || k === 'k' || k === 'л') { e.preventDefault(); ctlToggle(); return; } if (k === 'arrowleft') { ctlSeek(-10, true); return; } if (k === 'arrowright') { ctlSeek(10, true); return; } }
   if (KEYMAP[k]) { keys.add(k); updKeys(); e.preventDefault(); return; }
   if (e.repeat) return;
   const playing = !$('player').classList.contains('hidden') && !$('player').classList.contains('mini');
@@ -3288,7 +3703,7 @@ function handleTap(cx, cy) {
   for (const h of hits) {
     const u = h.object.userData;
     if (h.object.visible === false && !u.interId && !u.bug) continue;
-    if (u.agentId) { const a = agents[u.agentId]; if (a === selected) pet(a); else if (a.remote) { if (busyCheck(selected)) return; const q = a.root.position; selected.goTo(freeSpot(q, selected.root.position, 1.3), () => pet(selected), q); } else select(a); return; }
+    if (u.agentId) { const a = agents[u.agentId]; if (a === selected) pet(a); else if (a.remote && !a.remote.pet) { if (busyCheck(selected)) return; const q = a.root.position; selected.goTo(freeSpot(q, selected.root.position, 1.3), () => pet(selected), q); } else select(a); return; }
     if (u.npc) { commandNpc(u.npc); return; }
     if (u.bug) { commandBug(u.bug); return; }
     if (u.shellIdx !== undefined) { let o = h.object; while (o && !o.isGroup) o = o.parent; if (shells[u.shellIdx].visible) { commandShell(u.shellIdx); return; } continue; }
@@ -3378,6 +3793,7 @@ function loop(now) {
   accSlow += dt;
   if (accSlow > 2) {
     accSlow = 0; applyTime(); computeWeather(); checkDaily(); drawClock(); updateCoop();
+    for (const n of L.npcs) if (n.tag) n.tag.textContent = n.d.name + (npcNews(n) ? ' ❗' : '');
     if (fam.id && Date.now() - fam.last > 6000) syncNow();
     if (L.bugs.length < 4 || Math.random() < 0.05) spawnBugs(L);
     mailFlag.visible = state.mail.day !== dayNum(); updateMenuDot();
@@ -3423,7 +3839,7 @@ if (loaded.fresh) { $('intro').classList.remove('hidden'); $('introGo').onclick 
 document.addEventListener('visibilitychange', () => { if (document.hidden) { lastCloud = 0; saveLocal(); syncNow(); } else syncNow(); });
 updateCoop(); syncNow();
 requestAnimationFrame(loop);
-if (['localhost', '127.0.0.1'].includes(location.hostname)) window.__dbg = { travel, agents, state, LOCS, INTERS, commandInter, applyTime, refreshBday, openMenu, openMall, emote, openNpc, commandBug, syncNow, fam, me, merge3, live, liveTick, playFilm, FILMS, openScreen, openDecor, startEdit, endEdit, mgTiming, mgBarista, mgOffice, get edit() { return edit; }, get L() { return L; } };
+if (['localhost', '127.0.0.1'].includes(location.hostname)) window.__dbg = { travel, agents, state, LOCS, INTERS, commandInter, applyTime, refreshBday, openMenu, openMall, emote, openNpc, commandBug, syncNow, fam, me, merge3, live, liveTick, applyLive, cook, mgCook, openSalon, doGym, doKaraoke, doRead, takePhoto, openScreen, ytSearch, playYouTube, ctlToggle, ctlSeek, npcNews, playFilm, FILMS, openScreen, openDecor, startEdit, endEdit, mgTiming, mgBarista, mgOffice, get edit() { return edit; }, get L() { return L; } };
 </script>
 </body>
 </html>
