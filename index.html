@@ -17,12 +17,17 @@ html,body{margin:0;height:100%;overflow:hidden;background:#7d0f37;font-family:'N
 #top{position:absolute;top:calc(env(safe-area-inset-top) + 8px);left:8px;right:8px;display:flex;gap:6px;align-items:flex-start;pointer-events:auto}
 #chars{display:flex;gap:5px;flex:1;min-width:0}
 .card{flex:1;min-width:0;background:var(--card);border:2px solid transparent;border-radius:14px;padding:4px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
-.card.sel{border-color:var(--pink);box-shadow:0 0 0 3px rgba(255,111,163,.25)}
+.card{transition:transform .25s cubic-bezier(.3,1.6,.5,1),border-color .2s}
+.card.sel{border-color:var(--pink);box-shadow:0 0 0 3px rgba(255,111,163,.25),0 6px 16px rgba(255,60,130,.25);transform:translateY(-3px)}
+.card.bump{animation:bump .4s}
+@keyframes bump{30%{transform:translateY(-6px) scale(1.06)}}
+.card.low .bars{animation:lowp 1s infinite}
+@keyframes lowp{50%{filter:drop-shadow(0 0 4px #ff3d5a)}}
 .card canvas{width:38px;height:38px}
 .card .nm{font-size:10px;font-weight:900;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bars{width:100%;display:flex;flex-direction:column;gap:2px;padding:0 2px}
 .bar{height:4px;border-radius:3px;background:rgba(255,255,255,.13);overflow:hidden}
-.bar i{display:block;height:100%;border-radius:3px;transition:width .3s}
+.bar i{display:block;height:100%;border-radius:3px;transition:width .6s ease}
 .b-h i{background:#ffb04a}.b-f i{background:#ff6fa3}.b-e i{background:#8fd3ff}
 #right{display:flex;flex-direction:column;gap:5px;align-items:stretch}
 .pill{background:var(--card);border-radius:12px;padding:6px 9px;font-weight:900;white-space:nowrap;font-size:13px;text-align:center;transition:transform .15s}
@@ -34,7 +39,14 @@ html,body{margin:0;height:100%;overflow:hidden;background:#7d0f37;font-family:'N
 #labels{position:absolute;inset:0;overflow:hidden;pointer-events:none}
 #labels > div{position:absolute;left:0;top:0;will-change:transform;white-space:nowrap}
 .bubble{background:#fff;border-radius:14px;padding:1px 6px;font-size:18px;box-shadow:0 3px 0 rgba(0,0,0,.25)}
+.bubble span{display:inline-block;animation:bob 1.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-3px) rotate(-6deg)}}
 .float{font-size:22px;font-weight:900;text-shadow:0 2px 3px rgba(0,0,0,.5)}
+.float span{display:inline-block;animation:fpop .45s cubic-bezier(.3,1.8,.5,1) both}
+@keyframes fpop{from{transform:scale(.2) rotate(-20deg)}}
+.coinfly{position:absolute;font-weight:900;font-size:15px;color:#ffe37a;text-shadow:0 2px 3px rgba(0,0,0,.6);pointer-events:none;animation:cfly 1.1s ease-out forwards}
+.coinfly.neg{color:#ff9aa8}
+@keyframes cfly{from{opacity:0;transform:translateY(8px) scale(.6)}20%{opacity:1;transform:translateY(0) scale(1.15)}to{opacity:0;transform:translateY(-34px) scale(1)}}
 .say{background:#fff;color:#2a0f1e;font-size:12px;font-weight:800;border-radius:12px;padding:4px 9px;max-width:200px;white-space:normal!important;text-align:center;box-shadow:0 3px 0 rgba(0,0,0,.2)}
 .place{font-size:11px;font-weight:900;background:rgba(26,8,17,.62);padding:2px 8px;border-radius:9px}
 .npcname{font-size:10px;font-weight:900;background:rgba(255,111,163,.85);padding:1px 7px;border-radius:8px}
@@ -46,13 +58,32 @@ html,body{margin:0;height:100%;overflow:hidden;background:#7d0f37;font-family:'N
 #joy{position:absolute;left:18px;bottom:calc(env(safe-area-inset-bottom) + 14px);width:130px;height:130px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.08),rgba(26,8,17,.6));border:2px solid var(--line);pointer-events:auto;touch-action:none}
 #knob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px;border-radius:50%;background:linear-gradient(#ff8ab5,#e0457c);box-shadow:0 4px 0 #8c1b45,0 6px 14px rgba(0,0,0,.4)}
 #actBtn{position:absolute;right:18px;bottom:calc(env(safe-area-inset-bottom) + 24px);width:100px;height:100px;border-radius:50%;border:none;background:linear-gradient(#ff8ab5,#d93a73);color:#fff;font:900 12px 'Nunito',sans-serif;box-shadow:0 5px 0 #8c1b45,0 8px 18px rgba(0,0,0,.35);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;pointer-events:auto;padding:4px}
-#actBtn .ic{font-size:30px;line-height:1}
+#actBtn .ic{font-size:30px;line-height:1;display:inline-block}
+#actBtn .ic.swap{animation:swap .4s cubic-bezier(.3,1.8,.5,1)}
+@keyframes swap{from{transform:scale(.3) rotate(-30deg)}}
+.tool.tap{animation:toolTap .35s}
+@keyframes toolTap{40%{transform:scale(.86) rotate(-4deg)}70%{transform:scale(1.08)}}
+#knob{transition:transform .08s}
+#joy.on{border-color:var(--pink);box-shadow:0 0 18px rgba(255,111,163,.45)}
+#topfade{position:absolute;left:0;right:0;top:0;height:150px;background:linear-gradient(rgba(20,4,12,.35),transparent);pointer-events:none}
+#coop{font-size:10px;padding:4px 7px;display:none}
+#coop.on{display:block}
+#coop.live{background:rgba(40,120,70,.85)}
+.code{grid-column:1/-1;text-align:center;font:900 22px monospace;letter-spacing:2px;background:#fff3f7;color:#2a0f1e;border-radius:14px;padding:12px;user-select:text;-webkit-user-select:text}
 #actBtn.near{animation:pulse 1s infinite}
 @keyframes pulse{50%{box-shadow:0 5px 0 #8c1b45,0 0 0 8px rgba(255,111,163,.35)}}
-#toast{position:absolute;top:calc(env(safe-area-inset-top) + 96px);left:50%;transform:translateX(-50%);background:rgba(26,8,17,.92);border:2px solid var(--pink);padding:8px 14px;border-radius:14px;font-weight:800;font-size:14px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:92vw;text-align:center}
-#toast.on{opacity:1}
+#toast{position:absolute;top:calc(env(safe-area-inset-top) + 100px);left:50%;transform:translateX(-50%) translateY(-14px) scale(.9);background:linear-gradient(135deg,rgba(40,10,26,.95),rgba(26,8,17,.95));border:2px solid var(--pink);padding:9px 16px;border-radius:16px;font-weight:800;font-size:14px;opacity:0;transition:opacity .25s,transform .35s cubic-bezier(.3,1.6,.5,1);pointer-events:none;max-width:92vw;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
 #fade{position:absolute;inset:0;background:#1a0610;opacity:0;transition:opacity .35s;pointer-events:none;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900}
 #fade.on{opacity:1;pointer-events:auto}
+#fade span{display:inline-block;animation:fadeT .7s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes fadeT{from{transform:scale(.4) translateY(20px);opacity:0}}
+#sheet{animation:bgin .25s both}
+@keyframes bgin{from{background:rgba(10,2,6,0)}}
+.sheet-card{animation:sheetIn .38s cubic-bezier(.2,1.25,.4,1) both;box-shadow:0 -10px 30px rgba(0,0,0,.4)}
+@keyframes sheetIn{from{transform:translateY(100%)}}
+#sheetTabs button{transition:all .2s}
+#sheetTabs button.on{transform:scale(1.04)}
 #sheet{position:absolute;inset:0;background:rgba(10,2,6,.45);display:flex;align-items:flex-end;pointer-events:auto}
 .hidden{display:none!important}
 .sheet-card{width:100%;max-height:74%;background:#1d0a15;border-top:2px solid var(--pink);border-radius:22px 22px 0 0;padding:14px 14px calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px}
@@ -65,7 +96,12 @@ html,body{margin:0;height:100%;overflow:hidden;background:#7d0f37;font-family:'N
 #sheetTabs button{flex:1;background:#2a1020;border:2px solid #4a1b33;color:#fff;border-radius:12px;padding:7px 6px;font:900 12px 'Nunito',sans-serif;white-space:nowrap}
 #sheetTabs button.on{border-color:var(--pink);background:#4a1630}
 #sheetBody{overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;touch-action:pan-y;-webkit-overflow-scrolling:touch}
-.tile{background:#2a1020;border:2px solid #4a1b33;border-radius:16px;padding:10px 6px;color:#fff;display:flex;flex-direction:column;align-items:center;gap:3px;font:800 12px 'Nunito',sans-serif;text-align:center}
+.tile{background:linear-gradient(180deg,#331427,#26101c);border:2px solid #4a1b33;border-radius:16px;padding:10px 6px;color:#fff;display:flex;flex-direction:column;align-items:center;gap:3px;font:800 12px 'Nunito',sans-serif;text-align:center;animation:tileIn .35s cubic-bezier(.3,1.5,.5,1) both;transition:transform .12s}
+.tile:active{transform:scale(.93)}
+.tile .e{transition:transform .2s}
+.tile:active .e{transform:scale(1.25) rotate(-8deg)}
+@keyframes tileIn{from{opacity:0;transform:translateY(14px) scale(.9)}}
+.qrow,.info,.speech,.letter{animation:tileIn .35s both}
 .tile .e{font-size:30px;line-height:1.1}
 .tile .s{font-size:10px;opacity:.75;font-weight:700}
 .tile.sel{border-color:var(--pink);background:#4a1630}
@@ -85,7 +121,8 @@ html,body{margin:0;height:100%;overflow:hidden;background:#7d0f37;font-family:'N
 .sw{width:40px;height:40px;border-radius:50%;border:3px solid #4a1b33}
 .tile.sel .sw{border-color:#fff}
 #intro{position:absolute;inset:0;background:rgba(40,4,18,.82);display:flex;align-items:center;justify-content:center;padding:20px;pointer-events:auto}
-#intro .box{background:#1d0a15;border:2px solid var(--pink);border-radius:22px;padding:20px;max-width:360px;line-height:1.45;font-weight:700;font-size:14px;max-height:90%;overflow:auto}
+#intro .box{animation:sheetIn2 .5s cubic-bezier(.2,1.3,.4,1) both;background:#1d0a15;border:2px solid var(--pink);border-radius:22px;padding:20px;max-width:360px;line-height:1.45;font-weight:700;font-size:14px;max-height:90%;overflow:auto}
+@keyframes sheetIn2{from{opacity:0;transform:scale(.8) translateY(30px)}}
 #intro h1{margin:0 0 8px;font-size:22px;font-weight:900}
 #intro .btn{width:100%;margin-top:14px;padding:12px;font-size:16px;background:linear-gradient(#ff8ab5,#d93a73);border:none}
 </style>
@@ -93,12 +130,14 @@ html,body{margin:0;height:100%;overflow:hidden;background:#7d0f37;font-family:'N
 <body>
 <div id="stage"></div>
 <div id="hud">
+  <div id="topfade"></div>
   <div id="labels"></div>
   <div id="top">
     <div id="chars"></div>
     <div id="right">
       <div class="pill" id="coins">🪙 <span id="coinVal">0</span></div>
       <div id="rowR"><div class="pill" id="clock">☀️ 12:00</div><button id="menuBtn">☰</button></div>
+      <div class="pill" id="coop"></div>
     </div>
   </div>
   <div id="tools">
@@ -126,7 +165,8 @@ html,body{margin:0;height:100%;overflow:hidden;background:#7d0f37;font-family:'N
     🌱 Сажай, поливай, собирай урожай, лови бабочек и рыбу<br>
     ⛵ <b>Пристань</b> на юге острова — поездки в парк и город<br>
     🏠 В доме можно спать и расставлять мебель<br>
-    ☰ <b>Меню</b> — задания дня, коллекция, календарь, звук
+    ☰ <b>Меню</b> — задания дня, коллекция, календарь, звук<br>
+    👫 <b>Вместе</b> — общий остров на двоих
     <button class="btn" id="introGo">Играть 💕</button>
   </div></div>
 </div>
@@ -357,7 +397,7 @@ async function loadState() {
   while (s.plots.length < 9) s.plots.push(null);
   if (s.v < 2) { s.v = 2; for (const id of ORDER) if (s.chars[id].name === CHARS[id].name) s.chars[id].name = ''; }
   for (const id of ORDER) if (!CHARS[id].outfits[s.chars[id].outfit]) s.chars[id].outfit = Object.keys(CHARS[id].outfits)[0];
-  const el = clamp((Date.now() - s.savedAt) / 1000, 0, 8 * 3600) * 0.08;
+  const el = clamp((Date.now() - s.savedAt) / 1000, 0, 8 * 3600) * 0.025;
   for (const id of ORDER) {
     const st = s.chars[id].stats;
     st.hunger = Math.max(Math.min(st.hunger, 15), st.hunger - el * 0.22);
@@ -366,8 +406,120 @@ async function loadState() {
   }
   return { s, fresh: false };
 }
+// ---- shared family island (Firebase Realtime Database REST) ----
+const FB_URL = ''; // e.g. https://goth-family-default-rtdb.europe-west1.firebasedatabase.app
+const SYNC_BASE = ['localhost', '127.0.0.1'].includes(location.hostname) ? 'http://127.0.0.1:8792' : FB_URL;
+const fam = { id: localStorage.getItem('gf_family') || '', base: null, busy: false, ok: false, err: '', last: 0, players: {}, noEtag: false, partnerSeen: false, timer: 0 };
+try { fam.base = JSON.parse(localStorage.getItem('gf_base_' + fam.id) || 'null'); } catch (e) {}
+const me = (() => { const u = tg?.initDataUnsafe?.user; let id = u ? 'tg' + u.id : localStorage.getItem('gf_me'); if (!id) { id = 'p' + Math.random().toString(36).slice(2, 10); localStorage.setItem('gf_me', id); } return { id, name: u?.first_name || '', char: localStorage.getItem('gf_char') || '' }; })();
+const LOCAL_KEYS = ['selected', 'loc', 'settings', 'savedAt', 'mail'];
+function sharedOf(st) { const o = JSON.parse(JSON.stringify(st)); for (const k of LOCAL_KEYS) delete o[k]; for (const id of ORDER) { delete o.chars[id].x; delete o.chars[id].z; } return o; }
+const jeq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const COUNTER = /^(coins|inv\.\w+|seeds\.\w+|furn\.owned\.\w+)$/, STAT = /^chars\.\w+\.stats\.\w+$/, UNION = /(^unlocked\.\w+|\.got|\.picked)$/;
+function merge3(b, l, r, path = '') {
+  if (jeq(l, r)) return l;
+  if (jeq(l, b)) return r;
+  if (jeq(r, b)) return l;
+  if (typeof l === 'number' && typeof r === 'number') {
+    if (COUNTER.test(path)) return Math.max(0, r + (l - (typeof b === 'number' ? b : 0)));
+    if (STAT.test(path)) return Math.max(l, r);
+    return l;
+  }
+  if (Array.isArray(l) && Array.isArray(r)) {
+    if (UNION.test(path)) return [...new Set([...r, ...l])];
+    const out = []; for (let i = 0; i < Math.max(l.length, r.length); i++) out.push(merge3(b?.[i], l[i], r[i], path + '.' + i)); return out;
+  }
+  if (l && r && typeof l === 'object' && typeof r === 'object') {
+    const out = {}; for (const k of new Set([...Object.keys(l), ...Object.keys(r)])) { const v = merge3(b?.[k], l[k], r[k], path ? path + '.' + k : k); if (v !== undefined) out[k] = v; } return out;
+  }
+  return l === undefined ? r : l;
+}
+function replaceObj(t, src) { for (const k of Object.keys(t)) if (!(k in src)) delete t[k]; Object.assign(t, src); }
+function applyShared(m) {
+  for (const k of Object.keys(m)) {
+    if (k === 'chars') continue;
+    if (state[k] && m[k] && typeof state[k] === 'object' && typeof m[k] === 'object' && !Array.isArray(state[k]) && !Array.isArray(m[k])) replaceObj(state[k], m[k]); else state[k] = m[k];
+  }
+  merge(defaultState(), state);
+  for (const id of ORDER) {
+    const c = m.chars?.[id]; if (!c) continue; const sc = state.chars[id], hair = sc.hairColor;
+    Object.assign(sc.stats, c.stats); for (const k of Object.keys(c)) if (k !== 'stats') sc[k] = c[k];
+    const a = agents[id]; if (a.outfit !== sc.outfit || hair !== sc.hairColor) { a.outfit = sc.outfit; a.build(); }
+  }
+  $('coinVal').textContent = state.coins; refreshHome(); refreshBday(); updateCards(); updateMenuDot();
+}
+const famUrl = () => `${SYNC_BASE}/families/${fam.id}.json`;
+async function famGet() {
+  if (!fam.noEtag) {
+    try { const res = await fetch(famUrl(), { headers: { 'X-Firebase-ETag': 'true' }, cache: 'no-store' }); if (!res.ok) throw new Error('HTTP ' + res.status); return { data: await res.json(), etag: res.headers.get('ETag') }; }
+    catch (e) { if (!(e instanceof TypeError)) throw e; fam.noEtag = true; }
+  }
+  const res = await fetch(famUrl(), { cache: 'no-store' }); if (!res.ok) throw new Error('HTTP ' + res.status);
+  return { data: await res.json(), etag: null };
+}
+async function famPut(body, etag) {
+  const headers = { 'Content-Type': 'application/json' }; if (etag) headers['if-match'] = etag;
+  return fetch(famUrl(), { method: 'PUT', headers, body: JSON.stringify(body) });
+}
+const presence = () => ({ name: me.char ? nm(me.char) : (me.name || 'Игрок'), char: me.char || '', seen: Date.now(), loc: L?.id || 'island' });
+async function syncNow() {
+  if (!fam.id || !SYNC_BASE || fam.busy || !agents) return;
+  fam.busy = true;
+  try {
+    saveLocal();
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { data, etag } = await famGet();
+      const local = sharedOf(state), rs = data?.state;
+      const merged = rs ? merge3(fam.base || rs, local, rs) : local;
+      const players = { ...(data?.players || {}), [me.id]: presence() };
+      const put = await famPut({ v: 3, state: merged, players }, etag);
+      if (put.status === 412) continue;
+      if (!put.ok) throw new Error('HTTP ' + put.status);
+      fam.base = merged; try { localStorage.setItem('gf_base_' + fam.id, JSON.stringify(merged)); } catch (e) {}
+      if (!jeq(merged, local)) applyShared(merged);
+      fam.players = players; fam.ok = true; fam.err = ''; fam.last = Date.now();
+      break;
+    }
+  } catch (e) { fam.ok = false; fam.err = String(e.message || e); }
+  finally { fam.busy = false; updateCoop(); }
+}
+function scheduleSync(ms = 1500) { if (!fam.id) return; clearTimeout(fam.timer); fam.timer = setTimeout(syncNow, ms); }
+function partner() { return Object.entries(fam.players || {}).filter(([id]) => id !== me.id).map(([, p]) => p).sort((a, b) => b.seen - a.seen)[0]; }
+function updateCoop() {
+  const el = $('coop'); el.classList.toggle('on', !!fam.id);
+  if (!fam.id) return;
+  const p = partner(), live = p && Date.now() - p.seen < 25000;
+  el.classList.toggle('live', !!live);
+  el.textContent = live ? `🟢 ${p.name} в игре` : fam.ok ? '👫 Общий остров' : '⚠️ Нет связи';
+  if (live && !fam.partnerSeen) { toast(`💞 ${p.name} на острове вместе с тобой!`); sfx('heart'); }
+  fam.partnerSeen = !!live;
+}
+const newFamId = () => Array.from(crypto.getRandomValues(new Uint8Array(9)), b => 'abcdefghjkmnpqrstuvwxyz23456789'[b % 31]).join('');
+async function createFamily() {
+  if (!SYNC_BASE) return toast('Совместная игра ещё не подключена к базе 🛠');
+  fam.id = newFamId(); fam.base = null;
+  try { saveLocal(); const st = sharedOf(state); const r = await famPut({ v: 3, state: st, players: { [me.id]: presence() } }); if (!r.ok) throw new Error('HTTP ' + r.status); fam.base = st; localStorage.setItem('gf_family', fam.id); localStorage.setItem('gf_base_' + fam.id, JSON.stringify(st)); fam.ok = true; toast('Общий остров создан 💞 Отправь код второй половинке'); hapticOk(); }
+  catch (e) { fam.id = ''; toast('Не получилось создать: ' + (e.message || e)); }
+  updateCoop(); renderSheet();
+}
+async function joinFamily(code) {
+  code = (code || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (code.length < 6) return toast('Неверный код');
+  if (!SYNC_BASE) return toast('Совместная игра ещё не подключена к базе 🛠');
+  const prev = fam.id; fam.id = code;
+  try {
+    const { data } = await famGet();
+    if (!data?.state) throw new Error('Остров с таким кодом не найден');
+    applyShared(data.state); fam.base = data.state;
+    localStorage.setItem('gf_family', code); localStorage.setItem('gf_base_' + code, JSON.stringify(data.state));
+    fam.players = data.players || {}; toast('Ты на общем острове! 💞'); hapticOk(); sfx('bday'); saveLocal(); syncNow();
+  } catch (e) { fam.id = prev; toast(String(e.message || e)); }
+  updateCoop(); renderSheet();
+}
+function leaveFamily() { localStorage.removeItem('gf_family'); fam.id = ''; fam.base = null; fam.players = {}; updateCoop(); renderSheet(); toast('Теперь остров только твой'); }
 let lastCloud = 0;
-function save() {
+function save() { saveLocal(); scheduleSync(); }
+function saveLocal() {
   if (!agents) return;
   for (const id of ORDER) { const a = agents[id]; state.chars[id].x = +a.root.position.x.toFixed(2); state.chars[id].z = +a.root.position.z.toFixed(2); state.chars[id].outfit = a.outfit; }
   state.selected = selected.id; state.loc = L.id; state.savedAt = Date.now();
@@ -679,7 +831,7 @@ function makeBunny() {
   const n = rb(0.07, 0.07, 0.02, pk, 0.01); n.position.set(0, 0.34, 0.175); g.add(n);
   return g;
 }
-function makeHuman(def, o) { RS = 0.3; try { return makeHuman0(def, o); } finally { RS = 1; } }
+function makeHuman(def, o) { RS = 1.5; try { return makeHuman0(def, o); } finally { RS = 1; } }
 function makeHuman0(def, o) {
   const root = new THREE.Group(); root.scale.setScalar(def.scale);
   const body = new THREE.Group(); root.add(body);
@@ -757,7 +909,7 @@ function makeHuman0(def, o) {
   if (o.guitar) { const gt = new THREE.Group(); const gb = rb(0.55, 0.62, 0.14, M('#8a3a22'), 0.12); gt.add(gb); const nk = rb(0.08, 0.8, 0.05, M('#2a1a12'), 0.02); nk.position.set(0.45, 0.25, 0); nk.rotation.z = -1.1; gt.add(nk); gt.position.set(0, 1.35, 0.42); gt.rotation.z = 0.5; inner.add(gt); }
   return { root, body, upper, legs, arms, head, faceCtx: face.ctx, faceTex: face.tex, height: (2.02 + 0.95 * hs) * def.scale };
 }
-function makeCat(def, o) { RS = 0.35; try { return makeCat0(def, o); } finally { RS = 1; } }
+function makeCat(def, o) { RS = 1.3; try { return makeCat0(def, o); } finally { RS = 1; } }
 function makeCat0(def, o) {
   const root = new THREE.Group(); root.scale.setScalar(def.scale);
   const body = new THREE.Group(); root.add(body);
@@ -776,8 +928,9 @@ function makeCat0(def, o) {
     const ei = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.3, 4), pkd); ei.position.set(sd * 0.235, 0.5, 0.08); ei.rotation.copy(e.rotation); head.add(ei);
   }
   buildHat(o.hat, head, 0.38, 0.72);
-  const tail = new THREE.Group(); tail.position.set(0, 0.95, -0.56); body.add(tail);
-  const t = rb(0.1, 0.1, 0.62, pk, 0.04); t.position.set(0, 0.2, -0.25); t.rotation.x = -0.7; tail.add(t);
+  const tail = new THREE.Group(); tail.position.set(0, 0.92, -0.5); body.add(tail);
+  const tg = new RoundedBoxGeometry(0.11, 0.11, 0.62, 2, 0.05); tg.translate(0, 0, -0.31);
+  const t = new THREE.Mesh(tg, pk); t.castShadow = true; t.rotation.x = 0.55; tail.add(t);
   const collarM = o.collar === 'bow' ? M('#f48fb1') : o.collar === 'bell' ? M('#c2183f') : o.collar === 'scarf' ? M('#c2183f') : blk;
   const col = rb(0.6, o.collar === 'scarf' ? 0.2 : 0.13, 0.5, collarM, 0.05); col.position.set(0, 0.97, 0.5); body.add(col);
   if (o.collar === 'spikes') {
@@ -817,10 +970,10 @@ function animWalker(w, dt, moving, spd, time) {
   const bt = b?.t || 0;
   if (cat) {
     m.legs[0].rotation.x = m.legs[3].rotation.x = s; m.legs[1].rotation.x = m.legs[2].rotation.x = -s;
-    m.tail.rotation.z = Math.sin(time * 4) * 0.5; m.head.rotation.x = 0; m.head.rotation.z = Math.sin(time * 1.5) * 0.05; m.body.scale.y = 1;
+    m.tail.rotation.y = Math.sin(time * 4) * 0.45; m.head.rotation.x = 0; m.head.rotation.z = Math.sin(time * 1.5) * 0.05; m.body.scale.y = 1;
     if (!b) return;
     if (b.type === 'eat') m.head.rotation.x = 0.4 + Math.sin(bt * 14) * 0.15;
-    else if (b.type === 'happy' || b.type === 'hug' || b.type === 'net') { m.body.position.y = Math.abs(Math.sin(bt * 8)) * 0.35; m.tail.rotation.z = Math.sin(bt * 20) * 0.8; }
+    else if (b.type === 'happy' || b.type === 'hug' || b.type === 'net') { m.body.position.y = Math.abs(Math.sin(bt * 8)) * 0.35; m.tail.rotation.y = Math.sin(bt * 20) * 0.7; }
     else if (b.type === 'dance') { m.body.position.y = Math.abs(Math.sin(bt * 6)) * 0.4; m.body.rotation.y = Math.sin(bt * 5) * 1.2; }
     else if (b.type === 'fish') m.legs[0].rotation.x = -1.2 + Math.sin(bt * 10) * 0.5;
     else if (b.type === 'sleep') { m.body.scale.y = 0.7; m.root.position.y = b.y || 0; }
@@ -1750,9 +1903,9 @@ class Agent {
     turn(this, dt);
     animWalker(this, dt, !!move, move?.mag || 0, time);
     const st = this.stats, sleeping = this.busy?.type === 'sleep';
-    st.hunger = clamp(st.hunger - dt * (sleeping ? 0.08 : 0.22), 0, 100);
-    st.fun = clamp(st.fun - dt * 0.16, 0, 100);
-    st.energy = clamp(st.energy + dt * (sleeping ? 14 + comfort() * 1.5 : move ? -0.2 : -0.08), 0, 100);
+    st.hunger = clamp(st.hunger - dt * (sleeping ? 0.025 : 0.065), 0, 100);
+    st.fun = clamp(st.fun - dt * 0.045, 0, 100);
+    st.energy = clamp(st.energy + dt * (sleeping ? 14 + comfort() * 1.5 : move ? -0.06 : -0.025), 0, 100);
     this.setMood(sleeping ? 'sleep' : Math.min(st.hunger, st.fun, st.energy) < 22 ? 'sad' : 'happy');
   }
 }
@@ -1925,6 +2078,7 @@ function commandInter(it) {
 function select(a) {
   if (selected === a) return;
   selected = a; state.selected = a.id; a.target = null; updateCards(); haptic(); floatAgent(a, '✨');
+  const cc = cards[a.id].c; cc.classList.remove('bump'); void cc.offsetWidth; cc.classList.add('bump');
 }
 
 // ================= travel =================
@@ -1952,7 +2106,7 @@ function travel(to, at, silent) {
     state.loc = to;
   };
   if (silent) { go(); return; }
-  fading = true; const f = $('fade'); f.textContent = `${LOCS[to].icon} ${LOCS[to].name}`; f.classList.add('on'); sfx('door'); closeSheet();
+  fading = true; const f = $('fade'); f.innerHTML = `<span>${LOCS[to].icon} ${LOCS[to].name}</span>`; f.classList.add('on'); sfx('door'); closeSheet();
   setTimeout(() => { go(); save(); setTimeout(() => { f.classList.remove('on'); fading = false; }, 250); }, 380);
 }
 function openTravel() {
@@ -2099,7 +2253,7 @@ const $ = id => document.getElementById(id);
 let toastT = 0;
 function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('on'), 2600); }
 const floats = [];
-function floatAt(pos, text) { const el = document.createElement('div'); el.className = 'float'; el.textContent = text; labelsEl.appendChild(el); floats.push({ el, pos: pos.clone(), t: 0 }); }
+function floatAt(pos, text) { const el = document.createElement('div'); el.className = 'float'; const sp = document.createElement('span'); sp.textContent = text; el.appendChild(sp); labelsEl.appendChild(el); floats.push({ el, pos: pos.clone(), t: 0 }); }
 function floatAgent(a, text) { const p = a.root.position.clone(); p.y += a.model.height + 0.3; floatAt(p, text); }
 const _v = new THREE.Vector3(), _w = new THREE.Vector3();
 function place(el, p) {
@@ -2108,7 +2262,10 @@ function place(el, p) {
   el.style.visibility = 'visible';
   el.style.transform = `translate(${(_v.x * 0.5 + 0.5) * innerWidth}px,${(-_v.y * 0.5 + 0.5) * innerHeight}px) translate(-50%,-100%)`;
 }
-function bumpCoins(d) { state.coins += d; $('coinVal').textContent = state.coins; const c = $('coins'); c.classList.add('pop'); setTimeout(() => c.classList.remove('pop'), 150); }
+function bumpCoins(d) {
+  state.coins += d; $('coinVal').textContent = state.coins; const c = $('coins'); c.classList.add('pop'); setTimeout(() => c.classList.remove('pop'), 150);
+  if (!d) return; const r = c.getBoundingClientRect(), f = document.createElement('div'); f.className = 'coinfly' + (d < 0 ? ' neg' : ''); f.textContent = (d > 0 ? '+' : '') + d + '🪙'; f.style.left = (r.left + 6) + 'px'; f.style.top = (r.bottom + 2) + 'px'; $('hud').appendChild(f); setTimeout(() => f.remove(), 1150);
+}
 
 const cards = {}, portraits = {};
 function buildCards() {
@@ -2127,7 +2284,7 @@ function buildCards() {
 function updateCards() {
   for (const id of ORDER) {
     const k = cards[id], st = agents[id].stats;
-    k.c.classList.toggle('sel', selected.id === id); k.n.textContent = nm(id);
+    k.c.classList.toggle('sel', selected.id === id); k.c.classList.toggle('low', Math.min(st.hunger, st.fun, st.energy) < 25); k.n.textContent = nm(id);
     k.i[0].style.width = st.hunger + '%'; k.i[1].style.width = st.fun + '%'; k.i[2].style.width = st.energy + '%';
   }
 }
@@ -2171,6 +2328,7 @@ function closeSheet() { $('sheet').classList.add('hidden'); sheetOpts = null; tr
 function tile(body, { e, n, s, sel, dis, click, lock, sw }) {
   const b = document.createElement('button'); b.className = 'tile' + (sel ? ' sel' : '') + (lock ? ' lock' : ''); b.disabled = !!dis;
   b.innerHTML = (sw ? `<div class="sw" style="background:${sw}"></div>` : `<div class="e">${e}</div>`) + `<div>${n}</div>${s ? `<div class="s">${s}</div>` : ''}`;
+  b.style.animationDelay = Math.min(body.children.length * 22, 400) + 'ms';
   b.onclick = () => { haptic(); sfx('pop'); click?.(); }; body.appendChild(b); return b;
 }
 function sec(body, t) { const d = document.createElement('div'); d.className = 'sec'; d.textContent = t; body.appendChild(d); }
@@ -2351,7 +2509,7 @@ function openSlotPicker(i) {
   } });
 }
 function openMenu() {
-  openSheet({ title: '☰ Меню', tabs: [{ key: 'q', label: '📜 Задания' }, { key: 'dex', label: '📖 Коллекция' }, { key: 'cal', label: '🎂 Календарь' }, { key: 'set', label: '⚙️' }], render: (body, tab) => {
+  openSheet({ title: '☰ Меню', tabs: [{ key: 'q', label: '📜 Задания' }, { key: 'coop', label: '👫 Вместе' }, { key: 'dex', label: '📖 Коллекция' }, { key: 'cal', label: '🎂' }, { key: 'set', label: '⚙️' }], render: (body, tab) => {
     if (tab === 'q') {
       info(body, `🌅 Серия входов: <b>${state.daily.streak}</b> ${plural(state.daily.streak, 'день', 'дня', 'дней')}. Заходи каждый день — награда растёт!`);
       for (const q of state.daily.quests) {
@@ -2383,6 +2541,31 @@ function openMenu() {
       sec(body, '💞 Мы вместе с…'); row.append(inp, ok); body.appendChild(row);
       if (state.together) { const d = new Date(state.together), days = Math.floor((Date.now() - d) / 864e5); if (days >= 0) info(body, `💞 ${nm('mom')} и ${nm('dad')} вместе уже <b>${days}</b> ${plural(days, 'день', 'дня', 'дней')}`); }
     }
+    if (tab === 'coop') {
+      if (!SYNC_BASE) { info(body, '👫 <b>Совместная игра</b><br>Почти готово: осталось подключить облачную базу, где будет жить ваш общий остров. После этого здесь появятся кнопки «Создать» и «Присоединиться».'); return; }
+      sec(body, 'Кто ты?');
+      for (const id of ['mom', 'dad']) tile(body, { e: id === 'mom' ? '👩' : '👨', n: nm(id), sel: me.char === id, click: () => { me.char = id; localStorage.setItem('gf_char', id); select(agents[id]); scheduleSync(200); renderSheet(); } });
+      if (!fam.id) {
+        info(body, '💞 Один создаёт общий остров и отправляет код, второй вводит его у себя. Деньги, урожай, еда, мебель, наряды и задания станут общими.<br><br>⚠️ У того, кто присоединяется, текущий прогресс заменится общим.');
+        const b = document.createElement('button'); b.className = 'btn main'; b.style.gridColumn = '1/-1'; b.textContent = '🏝 Создать общий остров'; b.onclick = () => createFamily(); body.appendChild(b);
+        sec(body, 'Есть код от второй половинки?');
+        const row = document.createElement('div'); row.className = 'row';
+        const inp = document.createElement('input'); inp.placeholder = 'Код острова'; inp.maxLength = 20;
+        const ok = document.createElement('button'); ok.className = 'btn'; ok.textContent = 'Войти'; ok.onclick = () => joinFamily(inp.value);
+        row.append(inp, ok); body.appendChild(row);
+      } else {
+        sec(body, 'Код вашего острова');
+        const c = document.createElement('div'); c.className = 'code'; c.textContent = fam.id; body.appendChild(c);
+        const row = document.createElement('div'); row.className = 'row';
+        const cp = document.createElement('button'); cp.className = 'btn'; cp.style.flex = '1'; cp.textContent = '📋 Скопировать'; cp.onclick = () => { navigator.clipboard?.writeText(fam.id).then(() => toast('Код скопирован 📋'), () => toast('Скопируй код вручную')); };
+        const sh = document.createElement('button'); sh.className = 'btn main'; sh.style.flex = '1'; sh.textContent = '✈️ Отправить';
+        sh.onclick = () => { const text = `Заходи на наш остров 🖤 Меню ☰ → 👫 Вместе → код: ${fam.id}`; const url = `https://t.me/share/url?url=${encodeURIComponent(location.origin + location.pathname)}&text=${encodeURIComponent(text)}`; try { tg?.openTelegramLink ? tg.openTelegramLink(url) : window.open(url, '_blank'); } catch (e) { window.open(url, '_blank'); } };
+        row.append(cp, sh); body.appendChild(row);
+        const p = partner(), live = p && Date.now() - p.seen < 25000;
+        info(body, `${fam.ok ? '✅ Синхронизация работает' : '⚠️ Нет связи' + (fam.err ? ': ' + fam.err : '')}${fam.last ? ` · ${new Date(fam.last).toLocaleTimeString().slice(0, 5)}` : ''}<br>${p ? (live ? `🟢 ${p.name} сейчас в игре` : `⚪ ${p.name} был(а) в ${new Date(p.seen).toLocaleTimeString().slice(0, 5)}`) : '⏳ Ждём второго игрока'}`);
+        const lv = document.createElement('button'); lv.className = 'btn'; lv.style.gridColumn = '1/-1'; lv.textContent = 'Выйти из общего острова'; lv.onclick = () => leaveFamily(); body.appendChild(lv);
+      }
+    }
     if (tab === 'set') {
       tile(body, { e: state.settings.music ? '🎵' : '🔇', n: 'Музыка', s: state.settings.music ? 'вкл' : 'выкл', click: () => { state.settings.music = !state.settings.music; initAudio(); applyVolumes(); save(); renderSheet(); } });
       tile(body, { e: state.settings.sfx ? '🔊' : '🔈', n: 'Звуки', s: state.settings.sfx ? 'вкл' : 'выкл', click: () => { state.settings.sfx = !state.settings.sfx; initAudio(); applyVolumes(); applyWeatherVis(); save(); renderSheet(); } });
@@ -2396,6 +2579,7 @@ $('sheet').addEventListener('pointerdown', e => { if (e.target.id === 'sheet') c
 try { tg?.BackButton?.onClick(closeSheet); } catch (e) {}
 $('menuBtn').onclick = () => { initAudio(); haptic(); openMenu(); };
 document.querySelectorAll('.tool').forEach(b => b.onclick = () => {
+  b.classList.remove('tap'); void b.offsetWidth; b.classList.add('tap');
   initAudio(); haptic(); const act = b.dataset.act;
   if (act === 'feed') openFeed(); else if (act === 'dress') openDress(); else if (act === 'pet') pet(selected); else if (act === 'emote') openEmotes(); else if (act === 'bag') openBag();
 });
@@ -2405,9 +2589,9 @@ $('actBtn').onclick = () => { initAudio(); haptic('medium'); if (nearInter) comm
 // joystick
 let joyVec = null, joyId = null, joyC = null;
 const joy = $('joy'), knob = $('knob');
-joy.addEventListener('pointerdown', e => { initAudio(); joyId = e.pointerId; joy.setPointerCapture(e.pointerId); const r = joy.getBoundingClientRect(); joyC = { x: r.left + r.width / 2, y: r.top + r.height / 2 }; joyMove(e); });
+joy.addEventListener('pointerdown', e => { initAudio(); joy.classList.add('on'); joyId = e.pointerId; joy.setPointerCapture(e.pointerId); const r = joy.getBoundingClientRect(); joyC = { x: r.left + r.width / 2, y: r.top + r.height / 2 }; joyMove(e); });
 joy.addEventListener('pointermove', e => { if (e.pointerId === joyId) joyMove(e); });
-const joyEnd = e => { if (e.pointerId !== joyId) return; joyId = null; joyVec = null; knob.style.transform = ''; };
+const joyEnd = e => { if (e.pointerId !== joyId) return; joy.classList.remove('on'); joyId = null; joyVec = null; knob.style.transform = ''; };
 joy.addEventListener('pointerup', joyEnd); joy.addEventListener('pointercancel', joyEnd);
 function joyMove(e) {
   let dx = e.clientX - joyC.x, dy = e.clientY - joyC.y; const d = Math.hypot(dx, dy), max = 46;
@@ -2504,7 +2688,7 @@ function loop(now) {
   for (const a of Object.values(agents)) {
     const st = a.stats, need = !a.root.visible || a.busy?.type === 'sleep' ? '' : st.hunger < 30 ? '🍗' : st.energy < 25 ? '💤' : st.fun < 30 ? '💔' : '';
     a.bubble.classList.toggle('hidden', !need);
-    if (need) { if (a.bubble.textContent !== need) a.bubble.textContent = need; _w.copy(a.root.position); _w.y += a.model.height + 0.25; place(a.bubble, _w); }
+    if (need) { if (a.bubble.textContent !== need) a.bubble.innerHTML = `<span>${need}</span>`; _w.copy(a.root.position); _w.y += a.model.height + 0.25; place(a.bubble, _w); }
   }
   for (const pl of L.placeLabels) place(pl.el, pl.p);
   for (const n of L.npcs) { _w.copy(n.root.position); _w.y += n.model.height + 0.35; if (n.tag) place(n.tag, _w); if (n.sayT > 0) { _w.y += 0.5; place(n.say, _w); } }
@@ -2527,11 +2711,13 @@ function loop(now) {
     nearInter = null;
     if (!selected.busy) { let bd = 1.7; const p = selected.root.position; for (const it of L.inters) { if (it.enabled && !it.enabled()) continue; const d = Math.hypot(p.x - it.approach.x, p.z - it.approach.z); if (d < bd) { bd = d; nearInter = it; } } }
     const inf = nearInter ? nearInter.info() : { icon: '📣', text: 'Позвать' };
-    $('actIcon').textContent = inf.icon; $('actLabel').textContent = inf.text; $('actBtn').classList.toggle('near', !!nearInter);
+    if ($('actIcon').textContent !== inf.icon) { const ic = $('actIcon'); ic.textContent = inf.icon; ic.classList.remove('swap'); void ic.offsetWidth; ic.classList.add('swap'); }
+    $('actLabel').textContent = inf.text; $('actBtn').classList.toggle('near', !!nearInter);
   }
   accSlow += dt;
   if (accSlow > 2) {
-    accSlow = 0; applyTime(); computeWeather(); checkDaily(); drawClock();
+    accSlow = 0; applyTime(); computeWeather(); checkDaily(); drawClock(); updateCoop();
+    if (fam.id && Date.now() - fam.last > 6000) syncNow();
     if (L.bugs.length < 4 || Math.random() < 0.05) spawnBugs(L);
     mailFlag.visible = state.mail.day !== dayNum(); updateMenuDot();
     if (rainGain) rainGain.gain.value = rainLines.visible && state.settings.sfx ? 0.05 : 0;
@@ -2558,7 +2744,7 @@ marker = new THREE.Mesh(new THREE.RingGeometry(0.25, 0.4, 24), new THREE.MeshBas
 marker.rotation.x = -Math.PI / 2; marker.position.y = 0.05; scene.add(marker);
 buildCards();
 agents = {}; for (const id of ORDER) agents[id] = new Agent(id);
-selected = agents[state.selected] || agents.mom;
+selected = agents[me.char] || agents[state.selected] || agents.mom;
 ORDER.forEach(drawPortrait);
 plots.forEach((_, i) => refreshPlot(i, true));
 refreshShells(); refreshBday(); refreshHome();
@@ -2573,9 +2759,10 @@ resize(); updateCards(); updateMenuDot();
 const bd = bdayToday();
 if (bd.length) setTimeout(() => { toast(`🎂 Сегодня день рождения ${bd.map(id => id === 'mom' ? nm('mom') + 'ы' : nm('dad') + 'а').join(' и ')}! Подарок у дома 🎁`); sfx('bday'); }, 1500);
 if (loaded.fresh) { $('intro').classList.remove('hidden'); $('introGo').onclick = () => { $('intro').classList.add('hidden'); haptic('medium'); initAudio(); save(); }; }
-document.addEventListener('visibilitychange', () => { if (document.hidden) { lastCloud = 0; save(); } });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { lastCloud = 0; saveLocal(); syncNow(); } else syncNow(); });
+updateCoop(); syncNow();
 requestAnimationFrame(loop);
-if (location.hostname === 'localhost') window.__dbg = { travel, agents, state, LOCS, INTERS, commandInter, applyTime, refreshBday, openMenu, openMall, emote, openNpc, commandBug, get L() { return L; } };
+if (['localhost', '127.0.0.1'].includes(location.hostname)) window.__dbg = { travel, agents, state, LOCS, INTERS, commandInter, applyTime, refreshBday, openMenu, openMall, emote, openNpc, commandBug, syncNow, fam, me, merge3, get L() { return L; } };
 </script>
 </body>
 </html>
